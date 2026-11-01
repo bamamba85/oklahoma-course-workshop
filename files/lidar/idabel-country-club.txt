@@ -1,0 +1,2 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_RedRiver_B2_TL_2017_LAS_2019/laz/USGS_LPC_TX_RedRiver_B2_TL_2017_15SUT330500_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_RedRiver_B2_TL_2017_LAS_2019/laz/USGS_LPC_TX_RedRiver_B2_TL_2017_15SUT345500_LAS_2019.laz

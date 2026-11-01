@@ -1,0 +1,4 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_3_County_FEMAR6_2017_D18/OK_3County_2017/LAZ/USGS_LPC_OK_3_County_FEMAR6_2017_D18_15SUA3900.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_3_County_FEMAR6_2017_D18/OK_3County_2017/LAZ/USGS_LPC_OK_3_County_FEMAR6_2017_D18_15SUA3902.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_3_County_FEMAR6_2017_D18/OK_3County_2017/LAZ/USGS_LPC_OK_3_County_FEMAR6_2017_D18_15SUA4000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_3_County_FEMAR6_2017_D18/OK_3County_2017/LAZ/USGS_LPC_OK_3_County_FEMAR6_2017_D18_15SUA4002.laz

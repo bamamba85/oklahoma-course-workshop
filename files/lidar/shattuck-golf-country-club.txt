@@ -1,0 +1,6 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF185095_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF185110_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF200095_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF200110_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF215095_LAS_2019.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_TX_Panhandle_B1_2017_LAS_2019/laz/USGS_LPC_TX_Panhandle_B1_2017_14SMF215110_LAS_2019.laz

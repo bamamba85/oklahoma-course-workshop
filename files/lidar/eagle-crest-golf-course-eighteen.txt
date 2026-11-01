@@ -1,0 +1,6 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2732000_276000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2732000_278000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2734000_276000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2734000_278000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2736000_276000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_ArkansasCacheLCimarron_D25/OK_ARCacheLCimarron_3_D25/LAZ/USGS_LPC_OK_ArkansasCacheLCimarron_D25_2736000_278000.laz

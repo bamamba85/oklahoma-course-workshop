@@ -1,0 +1,2 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_Statewide_D22/OK_Statewide_1_D22/LAZ/USGS_LPC_OK_Statewide_D22_2170000_475000.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/OK_Statewide_D22/OK_Statewide_1_D22/LAZ/USGS_LPC_OK_Statewide_D22_2175000_475000.laz

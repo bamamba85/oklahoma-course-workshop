@@ -1,0 +1,4 @@
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_OK_Woodward_UTM15_B5_2016__LAS_2018/laz/USGS_LPC_OK_Woodward_UTM15_B5_2016__15STU208810_LAS_2018.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_OK_Woodward_UTM15_B5_2016__LAS_2018/laz/USGS_LPC_OK_Woodward_UTM15_B5_2016__15STU208811_LAS_2018.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_OK_Woodward_UTM15_B5_2016__LAS_2018/laz/USGS_LPC_OK_Woodward_UTM15_B5_2016__15STU210810_LAS_2018.laz
+https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/USGS_LPC_OK_Woodward_UTM15_B5_2016__LAS_2018/laz/USGS_LPC_OK_Woodward_UTM15_B5_2016__15STU210811_LAS_2018.laz
