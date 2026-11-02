@@ -7,7 +7,7 @@ const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
 async function home(){
  const [D,M]=await Promise.all([fetch('data/index.json').then(r=>r.json()),fetch('data/map.json').then(r=>r.json())]);
  progress(D.length);
- const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true]];
+ const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true],['Done by Others',c=>store.get()[c.s]?.st==='Done by Others']];
  let tab=0;
  $('tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-i="${i}" aria-selected="${i==0}">${t[0]}<small></small></button>`).join('');
  [...new Set(D.map(c=>c.r))].sort().forEach(r=>$('reg').add(new Option(r)));
@@ -22,7 +22,7 @@ async function home(){
   const left=c.mx>M.vb[2]*.62;hi.innerHTML=`<line x1="${c.mx}" y1="${c.my}" x2="${c.mx}" y2="${c.my-24}" stroke="#12302A" stroke-width="1.2"/><path style="fill:#C9281F;stroke:none" d="M${c.mx} ${c.my-24}l14 5l-14 5z"/><circle cx="${c.mx}" cy="${c.my}" r="4.8" fill="#C9281F" stroke="#fff"/>`;tip.textContent=c.n;tip.setAttribute('x',left?c.mx-6:c.mx+18);tip.setAttribute('y',c.my-20);tip.setAttribute('text-anchor',left?'end':'start')}
  const rank={Ready:0,Good:1,Thin:2};
  function draw(){const q=$('q').value.toLowerCase().trim(),s=store.get();
-  [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=`${L.filter(c=>s[c.s]?.st==='Built').length} of ${L.length} built`});
+  [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=T[i][0]==='Done by Others'?`${L.length} ${L.length==1?'course':'courses'}`:`${L.filter(c=>s[c.s]?.st==='Built').length} of ${L.length} built`});
   let R=D.filter(T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!$('tier').value||c.tier==$('tier').value)&&(!$('reg').value||c.r==$('reg').value));
   const o=$('sort').value;R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||a.n.localeCompare(b.n):o=='t'?(a,b)=>rank[a.tier]-rank[b.tier]||a.n.localeCompare(b.n):o=='y'?(a,b)=>(b.y||0)-(a.y||0):(a,b)=>a.n.localeCompare(b.n));
   $('ct').textContent=R.length+(R.length==1?' course':' courses');
