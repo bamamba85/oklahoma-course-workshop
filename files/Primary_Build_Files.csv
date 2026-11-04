@@ -1,5 +1,5 @@
 ﻿course,city,status,holes,primary_source,epsg,coordinate_system,units,tiles,mb,lidar_link_list,hole_shapes,scorecard
-Alva Golf & Country Club,Alva,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,12,214,Game Data/LIDAR Link Lists/alva-golf-and-country-club.txt,,Full
+Alva Golf & Country Club,Alva,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,12,214,Game Data/LIDAR Link Lists/alva-golf-and-country-club.txt,Game Data/GeoJSON Hole Geometry/alva-golf-and-country-club.geojson,Full
 Antlers Springs Golf Course,Antlers,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,226,Game Data/LIDAR Link Lists/antlers-springs-golf-course.txt,,Totals only
 Arrowhead State Park Golf Course,Canadian,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,6,316,Game Data/LIDAR Link Lists/arrowhead-state-park-golf-course.txt,Game Data/GeoJSON Hole Geometry/arrowhead-state-park-golf-course.geojson,Full
 Atoka Trails Golf Course,Atoka,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,171,Game Data/LIDAR Link Lists/atoka-trails-golf-course.txt,,Full
@@ -51,7 +51,7 @@ Deer Valley Golf Club,Kansas,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM z
 Dietrich Memorial Golf & Country Club,Anadarko,Inactive,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,377,Game Data/LIDAR Link Lists/dietrich-memorial-golf-country-club.txt,,Totals only
 Doby Springs Golf Course,Buffalo,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,17,270,Game Data/LIDAR Link Lists/doby-springs-golf-course.txt,,Totals only
 Dornick Hills Golf & Country Club,Ardmore,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,323,Game Data/LIDAR Link Lists/dornick-hills-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/dornick-hills-golf-country-club.geojson,Full
-Drover Hills Golf Course,Chickasha,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,1,83,Game Data/LIDAR Link Lists/drover-hills-golf-course.txt,,Totals only
+Chickasha Golf & Country Club,Chickasha,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,1,83,Game Data/LIDAR Link Lists/drover-hills-golf-course.txt,Game Data/GeoJSON Hole Geometry/drover-hills-golf-course.geojson,Totals only
 Drumright Golf Club,Drumright,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,2,150,Game Data/LIDAR Link Lists/drumright-golf-club.txt,,Full
 Duncan Golf & Country Club,Duncan,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,438,Game Data/LIDAR Link Lists/duncan-golf-country-club.txt,,Full
 Durant Country Club,Durant,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,458,Game Data/LIDAR Link Lists/durant-country-club.txt,,Full
@@ -170,7 +170,7 @@ River Bend Golf Club - North,Chickasha,Active,9,Point cloud (LAZ),6555,NAD83(201
 River Bend Golf Club - South,Chickasha,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,286,Game Data/LIDAR Link Lists/river-bend-golf-club-south.txt,Game Data/GeoJSON Hole Geometry/river-bend-golf-club-south.geojson,Full
 River Oaks Golf Club,Edmond,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,174,Game Data/LIDAR Link Lists/river-oaks-golf-club.txt,Game Data/GeoJSON Hole Geometry/river-oaks-golf-club.geojson,Full
 Riverside Municipal Golf Course,Clinton,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,266,Game Data/LIDAR Link Lists/riverside-municipal-golf-course.txt,Game Data/GeoJSON Hole Geometry/riverside-municipal-golf-course.geojson,Full
-Rock Creek Golf Course,Hugo,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,686,Game Data/LIDAR Link Lists/rock-creek-golf-course.txt,,Totals only
+Rock Creek Golf Course,Hugo,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,686,Game Data/LIDAR Link Lists/rock-creek-golf-course.txt,Game Data/GeoJSON Hole Geometry/rock-creek-golf-course.geojson,Totals only
 Rolling Meadows Golf Club,Covington,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,6,805,Game Data/LIDAR Link Lists/rolling-meadows-golf-club.txt,,Full
 Roman Nose Golf Course,Watonga,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,258,Game Data/LIDAR Link Lists/roman-nose-golf-course.txt,Game Data/GeoJSON Hole Geometry/roman-nose-golf-course.geojson,Full
 Rose Creek Golf Club,Edmond,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,191,Game Data/LIDAR Link Lists/rose-creek-golf-club.txt,Game Data/GeoJSON Hole Geometry/rose-creek-golf-club.geojson,Full
