@@ -48,6 +48,8 @@ input,select,textarea{border:1px solid #93A69B;background:#fff;border-radius:var
 /* build kit */
 .kit{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
 .crumb{font-size:14px;color:var(--soft)}
+.back{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px 8px 10px;margin-bottom:4px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);font-weight:600;text-decoration:none}
+.back:hover{border-color:var(--ink)}.back:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 .kit h1{font-size:clamp(40px,6vw,76px);margin:4px 0 6px}
 .sum{font-size:18px;margin:0;max-width:70ch}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 20px}
@@ -89,4 +91,4 @@ footer{padding:20px 24px;color:var(--soft);font-size:14px;border-top:1px solid v
 @supports(padding:env(safe-area-inset-left)){.top,.mapwrap,.kit,footer,.ctrl,.rows a,.keep{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}footer,.keep{padding-bottom:max(20px,env(safe-area-inset-bottom))}}
 @media(min-width:561px){.top,.mapwrap,.kit,footer{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}.ctrl,.rows a,.keep{padding-left:18px;padding-right:18px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
-@media print{#vf,#vp,.top,.acts,.vt,.rail,.sec,.crumb,footer{display:none!important}.printonly{display:block}.lead{display:block}body{background:#fff;font-size:12px}.kit{padding:0}.kit h1{font-size:30px}.view img{display:block!important;max-height:330px;width:auto}.printonly table{margin-top:10px;font-size:11px}.printonly th,.printonly td{padding:3px 6px;border:1px solid #888}.printonly thead th{background:#fff;color:#000}.printonly th:first-child,.printonly td:first-child{position:static}}
+@media print{#vf,#vp,.top,.acts,.vt,.rail,.sec,.crumb,.back,footer{display:none!important}.printonly{display:block}.lead{display:block}body{background:#fff;font-size:12px}.kit{padding:0}.kit h1{font-size:30px}.view img{display:block!important;max-height:330px;width:auto}.printonly table{margin-top:10px;font-size:11px}.printonly th,.printonly td{padding:3px 6px;border:1px solid #888}.printonly thead th{background:#fff;color:#000}.printonly th:first-child,.printonly td:first-child{position:static}}
