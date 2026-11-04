@@ -2,18 +2,20 @@ const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,m=
 const fmt=n=>n==null?'':Number(n).toLocaleString('en-US');
 const store={get(){try{return JSON.parse(localStorage.getItem('okw')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw',JSON.stringify(v))}catch{}}};
 const DONE=['Built','Done by Others'];
-function progress(total){const s=Object.values(store.get()),n=k=>s.filter(x=>x.st===k).length,b=n('Built'),o=n('Done by Others'),w=n('In progress');
- $('pt').innerHTML=`<b>${b+o} of ${total} done</b>${b||o?` <span class="kb">${b} built</span>`:''}${o?` <span class="ko">${o} by others</span>`:''}${w?` <span>${w} in progress</span>`:''}`;$('pb').style.width=(100*b/total)+'%';$('po').style.width=(100*o/total)+'%'}
+function progress(total){const s=Object.values(store.get()),n=k=>s.filter(x=>x.st===k).length,b=n('Built'),o=n('Done by Others'),w=n('In progress'),l=n('LIDAR done');
+ $('pt').innerHTML=`<b>${b+o} of ${total} done</b>${b||o?` <span class="kb">${b} built</span>`:''}${o?` <span class="ko">${o} by others</span>`:''}${w?` <span>${w} in progress</span>`:''}${l?` <span>${l} LIDAR done</span>`:''}`;$('pb').style.width=(100*b/total)+'%';$('po').style.width=(100*o/total)+'%'}
 const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
+const RC={Green:'#2E6B4F',Frontier:'#C8631C','Red Carpet':'#8E2F3C','Great Plains':'#B9842B',Chickasaw:'#3F6F8C',Choctaw:'#5B4E7E'};
+const TK=[['Ready','Ready: scorecard and full hole map'],['Good','Good: scorecard'],['Thin','Thin: needs research']];
 async function home(){
  const [D,M]=await Promise.all([fetch('data/index.json').then(r=>r.json()),fetch('data/map.json').then(r=>r.json())]);
  progress(D.length);
  const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true],['Done by Others',c=>store.get()[c.s]?.st==='Done by Others']];
  let tab=0;
  $('tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-i="${i}" aria-selected="${i==0}">${t[0]}<small></small></button>`).join('');
- [...new Set(D.map(c=>c.r))].sort().forEach(r=>$('reg').add(new Option(r)));
+ let view='tier',ft='',fr='';
  const svg=$('map');svg.setAttribute('viewBox',M.vb.join(' '));
- svg.innerHTML=M.p.map(p=>`<path d="${p}"/>`).join('')+D.filter(c=>c.mx!=null).map(c=>`<a class="pin" data-s="${c.s}" href="course.html?c=${c.s}" aria-label="${esc(c.n)}"><circle class="dot" cx="${c.mx}" cy="${c.my}" r="4.2" fill="${TC[c.tier]}"/></a>`).join('')+M.towns.map(t=>`<text class="town" x="${t[1]}" y="${t[2]+14}" text-anchor="middle">${t[0]}</text>`).join('')+'<g id="hi"></g><text id="tip"></text>';
+ svg.innerHTML=M.p.map((p,i)=>`<path class="co" d="${p}" data-r="${esc((M.pr||[])[i]||'').replace(' Country','')}"/>`).join('')+D.filter(c=>c.mx!=null).map(c=>`<a class="pin" data-s="${c.s}" href="course.html?c=${c.s}" aria-label="${esc(c.n)}"><circle class="dot" cx="${c.mx}" cy="${c.my}" r="4.2" fill="${TC[c.tier]}"/></a>`).join('')+M.towns.map(t=>`<text class="town" x="${t[1]}" y="${t[2]+14}" text-anchor="middle">${t[0]}</text>`).join('')+'<g id="hi"></g><text id="tip"></text>';
  const pins=Object.fromEntries([...svg.querySelectorAll('.pin')].map(p=>[p.dataset.s,p]));
  const tip=svg.querySelector('#tip'),hi=svg.querySelector('#hi');
  let cur=null;
@@ -24,13 +26,21 @@ async function home(){
  const rank={Ready:0,Good:1,Thin:2};
  function draw(){const q=$('q').value.toLowerCase().trim(),s=store.get();
   [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=T[i][0]==='Done by Others'?`${L.length} ${L.length==1?'course':'courses'}`:`${L.filter(c=>DONE.includes(s[c.s]?.st)).length} of ${L.length} done`});
-  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!$('tier').value||c.tier==$('tier').value)&&(!$('reg').value||c.r==$('reg').value));
+  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||($('mst').value=='-'?!s[c.s]?.st:s[c.s]?.st==$('mst').value)));
   const o=$('sort').value;R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||a.n.localeCompare(b.n):o=='t'?(a,b)=>rank[a.tier]-rank[b.tier]||a.n.localeCompare(b.n):o=='y'?(a,b)=>(b.y||0)-(a.y||0):(a,b)=>a.n.localeCompare(b.n));
   $('ct').textContent=R.length+(R.length==1?' course':' courses')+(q?', searching all tabs':'');
-  $('rows').innerHTML=R.length?R.map(c=>`<li><a data-s="${c.s}" href="course.html?c=${c.s}"><b>${esc(c.n)}</b><span class="num">${c.p?'Par '+c.p:''}${c.y?', '+fmt(c.y)+' yds':''}</span><span class="m">${esc(c.ci)}${c.st=='Unconfirmed'?', unconfirmed':''}${s[c.s]?.st?`, <span class="mine ${s[c.s].st.split(' ')[0]}">${esc(s[c.s].st)}</span>`:''}</span><span class="num tier ${c.tier}">${c.tier}</span></a></li>`).join(''):'<li class="empty">No courses match. Clear the search or choose another tab.</li>';
+  $('rows').innerHTML=R.length?R.map(c=>`<li><a data-s="${c.s}" href="course.html?c=${c.s}"><b>${esc(c.n)}</b><span class="num">${c.p?'Par '+c.p:''}${c.y?', '+fmt(c.y)+' yds':''}</span><span class="m">${esc(c.ci)}${c.st=='Unconfirmed'?', unconfirmed':''}${s[c.s]?.st?`, <span class="mine ${s[c.s].st.split(' ')[0]}">${esc(s[c.s].st)}</span>`:''}</span><span class="num tier ${c.tier}">${c.tier}</span></a></li>`).join(''):'<li class="empty">No courses match. Clear the search, tap the selected map color again, or choose another tab.</li>';
   const show=new Set(R.map(c=>c.s));for(const k in pins)pins[k].classList.toggle('off',!show.has(k))}
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
- ['q','tier','reg','sort'].forEach(i=>$(i).oninput=draw);
+ ['q','sort','mst'].forEach(i=>$(i).oninput=draw);
+ function paint(){const rg=view=='reg';svg.classList.toggle('rg',rg);
+  svg.querySelectorAll('.co').forEach(p=>p.style.fill=rg&&RC[p.dataset.r]?RC[p.dataset.r]:'');
+  svg.querySelectorAll('.pin').forEach(a=>{const c=D.find(x=>x.s==a.dataset.s);a.firstChild.setAttribute('fill',rg?RC[c.r]||'#8FA096':TC[c.tier])});
+  const items=rg?Object.keys(RC).map(r=>[r,r+' Country',RC[r],D.filter(c=>c.r==r).length]):TK.map(t=>[t[0],t[1],TC[t[0]],D.filter(c=>c.tier==t[0]).length]),sel=rg?fr:ft;
+  $('key').innerHTML=items.map(i=>`<button type="button" data-k="${esc(i[0])}" aria-pressed="${sel==i[0]}" style="--c:${i[2]}">${esc(i[1])} <small>${i[3]}</small></button>`).join('')}
+ $('views').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v==view)return;view=b.dataset.v;ft=fr='';[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x==b));paint();draw()};
+ $('key').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(view=='reg')fr=fr==k?'':k;else ft=ft==k?'':k;paint();draw()};
+ paint();
  const ev=(el,sel)=>{el.addEventListener('mouseover',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,true)});el.addEventListener('mouseout',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,false)});el.addEventListener('focusin',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,true)});el.addEventListener('focusout',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,false)})};
  ev($('rows'),'a');ev(svg,'.pin');svg.addEventListener('mouseleave',clear);$('rows').addEventListener('mouseleave',clear);addEventListener('pageshow',e=>{clear();if(e.persisted){progress(D.length);draw()}});addEventListener('scroll',clear,{passive:true,capture:true});draw();
  if(matchMedia('(hover:none)').matches)svg.addEventListener('click',e=>{e.preventDefault();const m=svg.getScreenCTM();let b=null,bd=28;D.forEach(c=>{if(!pins[c.s]||pins[c.s].classList.contains('off'))return;const d=Math.hypot(m.a*c.mx+m.e-e.clientX,m.d*c.my+m.f-e.clientY);if(d<bd){bd=d;b=c}});clear();$('pick').hidden=!b;if(b){mark(b.s,true);$('pick').innerHTML=`<a class="btn go" href="course.html?c=${b.s}">Open ${esc(b.n)}</a>`}});
@@ -59,7 +69,7 @@ async function kit(){
  const earth=c.pin?`https://earth.google.com/web/search/${c.pin[0]},${c.pin[1]}`:`https://earth.google.com/web/@${lat},${lon},400a,2500d,35y,0h,0t,0r`;
  const links=[];
  if(lat){links.push(['Satellite view in Google Maps',`https://www.google.com/maps/@${lat},${lon},1200m/data=!3m1!1e3`,'Latest imagery, good for checking bunkers and paths']);links.push(['Open in Google Earth',earth,c.pin?'Goes to this course\'s pin. 3D view for reading slopes':'3D view for reading slopes']);links.push(['OpenStreetMap',`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`,'The source of the hole lines'])}
- if(c.w)links.push(['Club website',c.w,'Clubhouse photos and current details']);if(c.curl)links.push(['Scorecard source',c.curl,c.csrc==='Official'?'Official card':'Directory listing']);
+ if(c.w)links.push(['Club website',c.w,'Clubhouse photos and current details']);{const g=encodeURIComponent;links.push(['Find on GolfPass',c.curl&&c.curl.includes('golfpass.com')?c.curl:`https://www.google.com/search?q=${g(`site:golfpass.com "${c.n}" ${c.ci} Oklahoma`)}`,'Scorecard and hole-by-hole layout']);links.push(['Find on GolfTraxx',`https://www.google.com/search?q=${g(`GolfTraxx "${c.n}" ${c.ci} Oklahoma`)}`,'Hole info and GPS layout (also in the GolfTraxx app)'])}if(c.curl)links.push(['Scorecard source',c.curl,c.csrc==='Official'?'Official card':'Directory listing']);
  const facts=[['Address',[c.a,c.ci,c.z].filter(Boolean).join(', ')],['Type',c.t],['Designer',c.ar],['Opened',c.yr],['Rating and slope',c.sl?`${c.ra} / ${c.sl}`:''],['Our difficulty label',c.d],['Grass',[c.fg,c.gg].filter(Boolean).join(' fairways, ')+(c.gg?' greens':'')],['Also known as',c.aka],['Ranking',c.rk],['On site',c.am.join(', ')],['Tournaments',c.ev.map(e=>e.y+' '+e.e).join('; ')]].filter(x=>x[1]);
  K.innerHTML=`<p class="crumb"><a href="index.html">All courses</a> / ${esc(c.r)} / ${esc(c.ci)}</p><h1>${esc(c.n)}</h1>
  <p class="sum">${c.st!='Active'?`<span class="lost ${c.st}">${c.st}</span> `:''}${[c.h?c.h+' holes':'',c.p?'par '+c.p:'',c.y?fmt(c.y)+' yards':''].filter(Boolean).join(', ')}${c.ci?' in '+esc(c.ci):''}.</p>
@@ -71,7 +81,7 @@ async function kit(){
  ${ck(c.gj?'y':'n','Hole shapes',c.gj?'GeoJSON download':'Not mapped')}
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
- <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">Not started</option><option>In progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
+ <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">Not started</option><option>LIDAR done</option><option>In progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
  <section class="printonly"><table><thead><tr><th>Hole</th><th>Par</th><th>Hcp</th><th>${esc(c.tees[0]||'Yards')}</th><th>In game</th><th>Notes</th></tr></thead><tbody>${c.holes.map(h=>`<tr><td>${h[0]}</td><td>${h[1]??''}</td><td>${h[2]??''}</td><td>${h[3][0]??''}</td><td style="width:70px"></td><td style="width:220px"></td></tr>`).join('')}</tbody></table></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>
