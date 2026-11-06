@@ -59,7 +59,7 @@ Eagle Crest Golf Course - Eighteen,Muskogee,Active,18,Point cloud (LAZ),6553,NAD
 Eagle Crest Golf Course - Nine,Muskogee,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,16,384,Game Data/LIDAR Link Lists/eagle-crest-golf-course-nine.txt,,Full
 Earlywine Golf Course - North,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,252,Game Data/LIDAR Link Lists/earlywine-golf-course-north.txt,Game Data/GeoJSON Hole Geometry/earlywine-golf-course-north.geojson,Full
 Earlywine Golf Course - South,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,252,Game Data/LIDAR Link Lists/earlywine-golf-course-south.txt,Game Data/GeoJSON Hole Geometry/earlywine-golf-course-south.geojson,Full
-East Lake Hills Resort,Vian,Unconfirmed,,None found,,,,0,,,,None
+East Lake Hills Resort,Vian,Inactive,,None found,,,,0,,,,None
 Eccentric Duffer Golf Course,Ada,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,353,Game Data/LIDAR Link Lists/eccentric-duffer-golf-course.txt,,Full
 Elk City Golf & Country Club,Elk City,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,228,Game Data/LIDAR Link Lists/elk-city-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/elk-city-golf-country-club.geojson,Full
 Elks Golf & Country Club,Shawnee,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,504,Game Data/LIDAR Link Lists/elks-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/elks-golf-country-club.geojson,Full
@@ -77,7 +77,7 @@ Gaillardia Country Club,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(201
 Generations Golf Course,Marlow,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,1,67,Game Data/LIDAR Link Lists/generations-golf-course.txt,,Full
 Gil Morgan Golf Course,Wewoka,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,509,Game Data/LIDAR Link Lists/gil-morgan-golf-course.txt,,Full
 Golden Oaks Village Green Golf,Enid,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,2,196,Game Data/LIDAR Link Lists/golden-oaks-village-green-golf.txt,Game Data/GeoJSON Hole Geometry/golden-oaks-village-green-golf.geojson,Full
-Gordon Golf Course,Claremore,Active,9,None found,,,,0,,,,Totals only
+Gordon Golf Course,Claremore,Inactive,9,None found,,,,0,,,,Totals only
 Grand Cherokee State Park Golf Course,Langley,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,356,Game Data/LIDAR Link Lists/grand-cherokee-state-park-golf-course.txt,,Full
 Guthrie Golf & Country Club,Guthrie,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,540,Game Data/LIDAR Link Lists/guthrie-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/guthrie-golf-country-club.geojson,Full
 Henryetta Golf & Country Club,Henryetta,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,353,Game Data/LIDAR Link Lists/henryetta-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/henryetta-golf-country-club.geojson,Full
@@ -145,7 +145,7 @@ Okeene Golf Club,Okeene,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 1
 Okemah Golf Course,Okemah,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,278,Game Data/LIDAR Link Lists/okemah-golf-course.txt,,Full
 Oklahoma City Golf & Country Club,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,7,281,Game Data/LIDAR Link Lists/oklahoma-city-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/oklahoma-city-golf-country-club.geojson,Full
 Okmulgee Country Club,Okmulgee,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,9,815,Game Data/LIDAR Link Lists/okmulgee-country-club.txt,,Full
-Osage Golf Course,Adair,Unconfirmed,18,None found,,,,0,,,,Full
+Osage Golf Course,Adair,Inactive,18,None found,,,,0,,,,Full
 Owasso Golf & Athletic Club,Owasso,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,5,185,Game Data/LIDAR Link Lists/owasso-golf-athletic-club.txt,Game Data/GeoJSON Hole Geometry/owasso-golf-athletic-club.geojson,Full
 Page Belcher Golf Course - Olde Page,Tulsa,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,6,295,Game Data/LIDAR Link Lists/page-belcher-golf-course-olde-page.txt,Game Data/GeoJSON Hole Geometry/page-belcher-golf-course-olde-page.geojson,Full
 Page Belcher Golf Course - Stone Creek,Tulsa,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,6,295,Game Data/LIDAR Link Lists/page-belcher-golf-course-stone-creek.txt,Game Data/GeoJSON Hole Geometry/page-belcher-golf-course-stone-creek.geojson,Full
@@ -164,7 +164,7 @@ Prairie West Golf Club at Weatherford,Weatherford,Active,18,Point cloud (LAZ),65
 Pryor Creek Municipal Golf Course,Pryor,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,8,173,Game Data/LIDAR Link Lists/pryor-creek-municipal-golf-course.txt,,Full
 Quail Creek Golf & Country Club,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,152,Game Data/LIDAR Link Lists/quail-creek-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/quail-creek-golf-country-club.geojson,Full
 Quail Ridge Golf Course,Grove,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,300,Game Data/LIDAR Link Lists/quail-ridge-golf-course.txt,,Full
-Quail Run Golf Course,Muldrow,Active,9,None found,,,,0,,,,Totals only
+Quail Run Golf Course,Muldrow,Inactive,9,None found,,,,0,,,,Totals only
 Quartz Mountain Golf Course,Lone Wolf,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,9,947,Game Data/LIDAR Link Lists/quartz-mountain-golf-course.txt,,Full
 River Bend Golf Club - North,Chickasha,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,2,146,Game Data/LIDAR Link Lists/river-bend-golf-club-north.txt,Game Data/GeoJSON Hole Geometry/river-bend-golf-club-north.geojson,Full
 River Bend Golf Club - South,Chickasha,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,286,Game Data/LIDAR Link Lists/river-bend-golf-club-south.txt,Game Data/GeoJSON Hole Geometry/river-bend-golf-club-south.geojson,Full
@@ -228,7 +228,7 @@ Tulsa Country Club,Tulsa,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone
 Turkey Creek Golf Club,Hennessey,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,4,248,Game Data/LIDAR Link Lists/turkey-creek-golf-club.txt,Game Data/GeoJSON Hole Geometry/turkey-creek-golf-club.geojson,Full
 Twin Hills Golf & Country Club,Oklahoma City,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,2,87,Game Data/LIDAR Link Lists/twin-hills-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/twin-hills-golf-country-club.geojson,Full
 Twin Oaks Golf Course,Duncan,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,350,Game Data/LIDAR Link Lists/twin-oaks-golf-course.txt,,Full
-Vinita Golf & Tennis Club,Vinita,Active,,None found,,,,0,,,,Totals only
+Vinita Golf & Tennis Club,Vinita,Inactive,,None found,,,,0,,,,Totals only
 Watonga Golf Club,Watonga,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,165,Game Data/LIDAR Link Lists/watonga-golf-club.txt,,Full
 Westbury Country Club,Yukon,Inactive,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,9,516,Game Data/LIDAR Link Lists/westbury-country-club.txt,,Full
 Westwood Park Golf Course,Norman,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,3,92,Game Data/LIDAR Link Lists/westwood-park-golf-course.txt,Game Data/GeoJSON Hole Geometry/westwood-park-golf-course.geojson,Full
@@ -243,4 +243,4 @@ Windy Trails Golf Course (Altus AFB),Altus AFB,Active,18,Point cloud (LAZ),6555,
 Winter Creek Golf & Country Club,Blanchard,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,6,508,Game Data/LIDAR Link Lists/winter-creek-golf-country-club.txt,Game Data/GeoJSON Hole Geometry/winter-creek-golf-country-club.geojson,Full
 Wolf Ridge Golf Course,Wister,Active,18,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,32,1238,Game Data/LIDAR Link Lists/wolf-ridge-golf-course.txt,Game Data/GeoJSON Hole Geometry/wolf-ridge-golf-course.geojson,Full
 Woodward Municipal Golf Course,Woodward,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,158,Game Data/LIDAR Link Lists/woodward-municipal-golf-course.txt,Game Data/GeoJSON Hole Geometry/woodward-municipal-golf-course.geojson,Full
-Spunky Creek Golf Club,Catoosa,Unconfirmed,,None found,,,,0,,,,None
+Spunky Creek Golf Club,Catoosa,Inactive,,None found,,,,0,,,,None
