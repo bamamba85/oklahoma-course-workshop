@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Draw Hole Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="app.css?v=26">
+<style>
+html,body{height:100%}
+body.draw{display:flex;flex-direction:column;overflow:hidden}
+.dbar{background:var(--panel);border-bottom:1px solid var(--line);padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));display:grid;gap:6px}
+.dbar .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.dbar h1{font-size:24px;margin-right:auto}
+.dbar .back{font-size:14px;white-space:nowrap}
+.holes{display:flex;gap:5px;overflow-x:auto;min-width:0;padding-bottom:2px}
+.hc{flex:none;display:flex;gap:6px;align-items:baseline;border:1px solid var(--line);background:#fff;border-radius:var(--r);padding:3px 8px;cursor:pointer;font-size:13px;white-space:nowrap}
+.hc b{font:800 18px/1 var(--disp)}
+.hc.on{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.hc.todo{border-style:dashed;color:var(--soft)}
+.ok{color:var(--fairway)}.mid{color:#9A7A1E}.bad{color:var(--flag)}
+.dbar .btn{padding:6px 12px;font-size:14px}
+#dst{font-size:14px;color:var(--soft);flex:1 1 300px}
+#dmap{flex:1;min-height:0;background:#1d2a24}
+.tee{background:#A0301E;color:#fff;border:2px solid #fff;border-radius:50%;font:700 14px/26px Arial,sans-serif;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.tee.on{background:#FFD84A;color:#12302A}
+.grn{border:4px solid #78FF8C;border-radius:50%;background:rgba(120,255,140,.25);box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.bend{background:#fff;border:2px solid #000;border-radius:50%}
+#dmap.placing,#dmap.placing .leaflet-interactive,#dmap.placing .leaflet-grab,#dmap.placing .leaflet-marker-icon{cursor:crosshair!important}
+#dadd[aria-pressed="true"]{background:var(--flag);border-color:var(--flag)}
+#dtxt{display:none;width:100%;height:80px;font:12px/1.4 Consolas,monospace}
+</style></head><body class="draw">
+<div class="dbar">
+ <div class="row"><a class="back" id="dback" href="index.html">← Back to course</a><h1 id="dname">Draw hole map</h1>
+  <button class="btn go" id="ddl" type="button">Download for Claude</button><button class="btn" id="dcp" type="button">Copy</button></div>
+ <div class="holes" id="dholes" role="toolbar" aria-label="Holes"></div>
+ <div class="row"><button class="btn go" id="dadd" type="button">Add hole</button><button class="btn" id="dbend" type="button">Add bend</button><button class="btn" id="dunb" type="button">Remove bend</button><button class="btn" id="dclr" type="button">Clear hole</button><span id="dst" role="status"></span></div>
+ <textarea id="dtxt" readonly aria-label="Hole routes"></textarea>
+</div>
+<div id="dmap" role="region" aria-label="Satellite map for drawing holes"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="app.js?v=26"></script><script src="draw.js?v=27"></script></body></html>
