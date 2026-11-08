@@ -2,6 +2,9 @@ const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,m=
 const fmt=n=>n==null?'':Number(n).toLocaleString('en-US');
 const store={get(){try{return JSON.parse(localStorage.getItem('okw')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw',JSON.stringify(v))}catch{}}};
 const DONE=['Built','Done by Others'];
+// Status shown for a course: his own (saved in 'okw': In progress, LIDAR done, Built, Done by Others) or, if he
+// hasn't set one, the automatic map status from the build (No OSM, Partial OSM, Full OSM). Saved values never change.
+const stat=(c,s)=>s[c.s]?.st||c.os||'No OSM',slbl=v=>v==='In progress'?'In Progress':v;
 function progress(total){const s=Object.values(store.get()),n=k=>s.filter(x=>x.st===k).length,b=n('Built'),o=n('Done by Others'),w=n('In progress'),l=n('LIDAR done');
  $('pt').innerHTML=`<b>${b+o} of ${total} done</b>${b||o?` <span class="kb">${b} built</span>`:''}${o?` <span class="ko">${o} by others</span>`:''}${w?` <span>${w} in progress</span>`:''}${l?` <span>${l} LIDAR done</span>`:''}`;$('pb').style.width=(100*b/total)+'%';$('po').style.width=(100*o/total)+'%'}
 const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
@@ -38,16 +41,16 @@ async function home(){
  const rank={Ready:0,Good:1,Thin:2};
  function draw(){const q=$('q').value.toLowerCase().trim(),s=store.get();
   [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=T[i][0]==='Done by Others'?`${L.length} ${L.length==1?'course':'courses'}`:`${L.filter(c=>DONE.includes(s[c.s]?.st)).length} of ${L.length} done`});
-  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||($('mst').value=='-'?!s[c.s]?.st:s[c.s]?.st==$('mst').value)));
+  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||stat(c,s)==$('mst').value));
   const o=$('sort').value;R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||a.n.localeCompare(b.n):o=='t'?(a,b)=>rank[a.tier]-rank[b.tier]||a.n.localeCompare(b.n):o=='y'?(a,b)=>(b.y||0)-(a.y||0):(a,b)=>a.n.localeCompare(b.n));
   $('ct').textContent=R.length+(R.length==1?' course':' courses')+(q?', searching all tabs':'');
-  $('rows').innerHTML=R.length?R.map(c=>`<li><a data-s="${c.s}" href="course.html?c=${c.s}"><b>${esc(c.n)}</b><span class="num">${c.p?'Par '+c.p:''}${c.y?', '+fmt(c.y)+' yds':''}</span><span class="m">${esc(c.ci)}${c.st=='Unconfirmed'?', unconfirmed':''}${c.mx==null?', not on the map yet':''}${s[c.s]?.st?`, <span class="mine ${s[c.s].st.split(' ')[0]}">${esc(s[c.s].st)}</span>`:''}</span>${c.st=='Inactive'?'<span class="num"><span class="lost">Inactive</span></span>':`<span class="num tier ${c.tier}">${c.tier}</span>`}</a></li>`).join(''):'<li class="empty">No courses match. Clear the search, tap the selected map color again, or choose another tab.</li>';
+  $('rows').innerHTML=R.length?R.map(c=>`<li><a data-s="${c.s}" href="course.html?c=${c.s}"><b>${esc(c.n)}</b><span class="num">${c.p?'Par '+c.p:''}${c.y?', '+fmt(c.y)+' yds':''}</span><span class="m">${esc(c.ci)}${c.st=='Unconfirmed'?', unconfirmed':''}${c.mx==null?', not on the map yet':''}, <span class="mine ${s[c.s]?.st?s[c.s].st.split(' ')[0]:'auto'}">${esc(slbl(stat(c,s)))}</span></span>${c.st=='Inactive'?'<span class="num"><span class="lost">Inactive</span></span>':`<span class="num tier ${c.tier}">${c.tier}</span>`}</a></li>`).join(''):'<li class="empty">No courses match. Clear the search, tap the selected map color again, or choose another tab.</li>';
   const show=new Set(R.map(c=>c.s));for(const k in pins)pins[k].classList.toggle('off',!show.has(k));save()}
  // The search, tab, sort, filters and scroll position stay for this browser tab, so coming back to the list keeps them.
  const SK='okw-list';let saved=null;
  function save(){try{sessionStorage.setItem(SK,JSON.stringify({tab,q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
  try{saved=JSON.parse(sessionStorage.getItem(SK)||'null')}catch{}
- if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst||'';view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
+ if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
@@ -75,11 +78,43 @@ async function home(){
   const tr=v._trace&&typeof v._trace=='object'?Object.fromEntries(Object.entries(v._trace).filter(([k,x])=>known(k)&&x&&typeof x.h=='object')):{};if(Object.keys(tr).length)try{localStorage.setItem('okw-trace',JSON.stringify({...tget(),...tr}))}catch{}
   progress(D.length);draw();gk();const n=Object.keys(ok).length,m=Object.keys(g).length,t=Object.keys(tr).length;const cn=x=>`${x} ${x==1?'course':'courses'}`;
   $('rsm').textContent=[n?`Restored ${cn(n)}.`:'',m?`2K25 setting changes for ${cn(m)}.`:'',t?`Drawn hole routes for ${cn(t)}.`:''].filter(Boolean).join(' ')||'Nothing in that file matched a course.'}catch{$('rsm').textContent='That file is not a progress backup. Choose the file made by Download my progress.'}}}
+// Leaflet (the map library) loads only when a map is first shown; resolves false if it can't load.
+const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';let LL;
+function leaflet(){if(window.L)return Promise.resolve(true);if(LL)return LL;
+ const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';l.crossOrigin='';document.head.append(l);
+ return LL=new Promise(r=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';s.onload=()=>r(true);s.onerror=()=>r(false);document.head.append(s)})}
+// Shape colors, the same as the hole-map pictures (Build Kit/hole_map_style.py). Water is left out on purpose.
+const SHAPE_STYLE={fairway:{fillColor:'rgb(60,200,60)',fillOpacity:.37,color:'rgb(105,190,75)',weight:2},tee:{fillColor:'#fff',fillOpacity:.47,color:'#fff',weight:2},
+ green:{fillColor:'rgb(110,255,140)',fillOpacity:.59,color:'rgb(235,255,235)',weight:3},bunker:{fillColor:'rgb(255,236,170)',fillOpacity:.92,color:'rgb(110,80,20)',weight:2}};
+function shapeLayer(g,pane){const order=Object.keys(SHAPE_STYLE),fs=g.features.filter(f=>SHAPE_STYLE[f.properties.kind]&&/Polygon/.test(f.geometry.type)).sort((a,b)=>order.indexOf(a.properties.kind)-order.indexOf(b.properties.kind));
+ return L.geoJSON({type:'FeatureCollection',features:fs},{pane,interactive:false,style:f=>({...SHAPE_STYLE[f.properties.kind],opacity:1})})}
+function shapeKey(){const k=L.control({position:'bottomleft'});k.onAdd=()=>{const d=L.DomUtil.create('div','skey');
+ d.innerHTML=[['Fairway','fairway'],['Green','green'],['Tee','tee'],['Bunker','bunker']].map(([t,s])=>`<span><i style="background:${SHAPE_STYLE[s].fillColor};border-color:${SHAPE_STYLE[s].color}"></i>${t}</span>`).join('');return d};return k}
+// Hole map view: zoomable USGS satellite map with the course's shapes, hole lines and numbered tees. Shows the
+// hole-map picture instead in the preview, when the map library can't load, or when the USGS tiles fail.
+let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=true;box.hidden=true;$('vz').hidden=true;$('vi').hidden=false;$('vi').src=`img/holes/${c.s}.jpg`};
+ if(hm){box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;hm.invalidateSize();return}
+ if(hmFail||window.OKW_PREVIEW||!c.ob||!await leaflet())return pic();
+ box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;const touch=matchMedia('(hover:none)').matches;
+ hm=L.map(box,{dragging:!touch,scrollWheelZoom:false,maxZoom:19,zoomSnap:.5});hm.createPane('shapes').style.zIndex=350;
+ const t=L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:19,attribution:'USGS'}).addTo(hm);let got=0,bad=0;
+ t.on('tileload',()=>got++);t.on('tileerror',()=>{if(++bad>=4&&!got&&hm){hm.remove();hm=null;pic()}});
+ const frame=L.latLngBounds([[c.ob[0],c.ob[1]],[c.ob[2],c.ob[3]]]);hm.fitBounds(frame);
+ let g=null;if(c.gj)try{g=await fetch(`files/geojson/${c.s}.geojson`).then(r=>r.json())}catch{}
+ if(!hm)return;const shp=g?shapeLayer(g,'shapes'):null,has=shp&&shp.getLayers().length,holes=L.layerGroup().addTo(hm);if(has)shp.addTo(hm);
+ for(const f of g?.features||[]){if(f.properties.kind!='hole'||f.geometry.type!='LineString')continue;const p=f.geometry.coordinates.map(q=>[q[1],q[0]]);
+  L.polyline(p,{color:'#000',opacity:.55,weight:6,interactive:false}).addTo(holes);L.polyline(p,{color:'#fff',weight:3,interactive:false}).addTo(holes);
+  const n=String(f.properties.ref??'').split(';')[0].match(/(\d+)\s*$/)?.[1];if(n)L.marker(p[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<div class="htee">${n}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).addTo(holes)}
+ const ctl=L.control({position:'topright'});ctl.onAdd=()=>{const d=L.DomUtil.create('div','hmctl');d.innerHTML='<button type="button" data-a="fit">Fit course</button>'+(has?'<button type="button" data-a="shp" aria-pressed="true">Shapes on</button>':'');
+  L.DomEvent.disableClickPropagation(d);d.onclick=e=>{const a=e.target.dataset.a;if(a=='fit')hm.fitBounds(frame);
+   if(a=='shp'){const on=hm.hasLayer(shp);on?hm.removeLayer(shp):shp.addTo(hm);e.target.setAttribute('aria-pressed',!on);e.target.textContent=on?'Shapes off':'Shapes on'}};return d};ctl.addTo(hm);
+ if(has)shapeKey().addTo(hm);
+ // the mouse wheel zooms only after a click on the map, so scrolling the page doesn't get caught by it
+ hm.on('click',()=>hm.scrollWheelZoom.enable());hm.on('mouseout',()=>hm.scrollWheelZoom.disable())}
 let pm;async function pinmap(p){if(pm){pm.invalidateSize();return}
- if(!window.L){const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';l.crossOrigin='';document.head.append(l);
-  try{await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';s.onload=r;s.onerror=j;document.head.append(s)})}catch{$('vf').innerHTML='<p class="none">The map could not load. Use the Google Earth link below.</p>';return}}
+ if(!await leaflet()){$('vf').innerHTML='<p class="none">The map could not load. Use the Google Earth link below.</p>';return}
  pm=L.map('vf',{dragging:!matchMedia('(hover:none)').matches,scrollWheelZoom:false}).setView(p,15);
- L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:18,attribution:'USGS'}).addTo(pm);
+ L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:18,attribution:'USGS'}).addTo(pm);
  L.marker(p,{title:'Open in Google Earth',alt:'Open this pin in Google Earth',icon:L.divIcon({className:'pinflag',html:'<svg viewBox="0 0 28 36" width="28" height="36" aria-hidden="true"><path d="M5 2v31" stroke="#fff" stroke-width="3"/><path d="M5 2v31" stroke="#12302A" stroke-width="1.5"/><path d="M6 3l20 7-20 7z" fill="#C9281F" stroke="#fff"/></svg>',iconSize:[28,36],iconAnchor:[5,34]})}).on('click',()=>window.open(document.querySelector('#vp a').href,'_blank','noopener')).addTo(pm)}
 function scorecard(c){if(!c.holes.length)return `<p>No hole-by-hole card has been found for this course. ${c.card==='Totals only'?'Course totals are listed under tees.':'A phone call or a photo of the paper card would fill this in.'}</p>`;
  const H=c.holes,nine=H.length<=9,part=(a,b,f)=>H.slice(a,b).reduce((s,h)=>s+(f(h)||0),0);
@@ -156,6 +191,12 @@ async function kit(){
  fetch('data/index.json').then(r=>r.json()).then(d=>progress(d.length));
  document.title=c.n+' Build Kit';const s=store.get(),me=s[c.s]||{};
  const ck=(st,t,sub)=>`<li><i class="${st}">${st=='y'?'✓':st=='p'?'~':'✕'}</i><span>${t}${sub?`<small>${sub}</small>`:''}</span></li>`;
+ // Hole shapes: what OpenStreetMap really has (c.sh counts; c.shp is the build's strict rating: ✓ a green for
+ // every hole plus fairways or bunkers, ~ incomplete, ✕ none — hole lines or water alone don't count).
+ const shapes=c=>{const s=c.sh||{},nm={green:['green','greens'],fairway:['fairway','fairways'],tee:['tee box','tee boxes'],bunker:['bunker','bunkers'],water:['water area','water areas']},
+  list=Object.entries(s).map(([k,n])=>`${n} ${nm[k][n>1?1:0]}`).join(', '),st=c.shp||'n',nh=c.h||c.mapped||18;
+  const miss=st=='p'?[(s.green||0)<nh?`${(s.green||0)?'only '+s.green:'no'} green${s.green==1?'':'s'} for ${nh} holes`:'',!(s.fairway||s.bunker)?'no fairways or bunkers':''].filter(Boolean).join(', '):'';
+  return ck(st,'Hole shapes',st=='y'?list:st=='p'?`Incomplete: ${miss}. Has ${list}`:c.mapped?`No greens, fairways or bunkers mapped yet${s.water?` (only ${list})`:''}`:'Not mapped')};
  const lat=c.la,lon=c.lo,mb=a=>a.reduce((x,i)=>x+i.mb,0),feet=(c.pn||'').includes('ftUS');
  const ft=a=>`<div class="sw"><table><thead><tr><th>File</th><th>EPSG</th><th>Size</th><th>Published</th></tr></thead><tbody>${a.map(f=>`<tr><td><a href="${esc(f.u)}">${esc(f.t.replace('USGS Lidar Point Cloud ','').replace('USGS 1 Meter ',''))}</a></td><td>${f.e??''}</td><td>${f.mb} MB</td><td>${esc(f.d||'')}</td></tr>`).join('')}</tbody></table></div>`;
  const earth=c.pin?`https://earth.google.com/web/search/${c.pin[0]},${c.pin[1]}`:`https://earth.google.com/web/@${lat},${lon},400a,2500d,35y,0h,0t,0r`;
@@ -165,15 +206,15 @@ async function kit(){
  const facts=[['Address',[c.a,c.ci,c.z].filter(Boolean).join(', ')],['Type',c.t],['Designer',c.ar],['Opened',c.yr],['Rating and slope',c.sl?`${c.ra} / ${c.sl}`:''],['Our difficulty label',c.d],['Grass',[c.fg,c.gg].filter(Boolean).join(' fairways, ')+(c.gg?' greens':'')],['Also known as',c.aka],['Ranking',c.rk],['On site',c.am.join(', ')],['Tournaments',c.ev.map(e=>e.y+' '+e.e).join('; ')]].filter(x=>x[1]);
  K.innerHTML=`<a class="back" id="back" href="index.html">← Back to courses</a><p class="crumb"><a href="index.html">All courses</a> / ${esc(c.r)} / ${esc(c.ci)}</p><h1>${esc(c.n)}</h1>
  <p class="sum">${c.st!='Active'?`<span class="lost ${c.st}">${c.st}</span> `:''}${[c.h?c.h+' holes':'',c.p?'par '+c.p:'',c.y?fmt(c.y)+' yards':''].filter(Boolean).join(', ')}${c.ci?' in '+esc(c.ci):''}.</p>
- <div class="acts"><button class="btn go" onclick="print()">Print build sheet</button>${c.img?`<a class="btn" href="img/holes/${c.s}.jpg" download="${esc(c.n.replace(/[\\/:*?"<>|]/g,''))} ${c.mapped?'hole map':'aerial'}.jpg">${c.mapped?'Download hole map (JPG)':'Download aerial (JPG)'}</a>`:''}${c.la&&['Aerial only','None','Partial hole map'].includes(c.lay)?`<a class="btn" href="draw.html?c=${c.s}">Draw hole map</a>`:''}${c.ob?'<button class="btn" id="osmck" type="button">Check OpenStreetMap</button>':''}${c.lidar.length?`<a class="btn" href="#lidar">Point cloud files, EPSG ${c.pe}</a>`:''}</div>${c.ob?'<p class="osmst" id="osmst" role="status" hidden></p>':''}
- <div class="lead"><figure class="view"><div class="vt">${c.img?`<button aria-pressed="true" data-v="holes">Hole map</button><button aria-pressed="false" data-v="aerial">Clean aerial</button>${c.pin?'<button aria-pressed="false" data-v="pin">Satellite pin</button>':''}`:'<button aria-pressed="true" data-v="none">Aerial</button>'}<button aria-pressed="false" data-v="game">Game</button></div><div id="vg" hidden role="region" aria-label="PGA Tour 2K25 settings for ${esc(c.n)}">${game(c)}</div>${c.img?`<img id="vi" width="1200" height="900" src="img/holes/${c.s}.jpg" alt="Aerial of ${esc(c.n)} with mapped holes">${c.pin?`<div id="vf" hidden role="region" aria-label="Satellite map with the pin for ${esc(c.n)}"></div>`:''}<figcaption><span id="vc">${c.lay=='Traced hole map'?`${c.mapped} holes traced by hand on this aerial. Routes are approximate; check them against the course before building.`:c.mapped?`${c.mapped} numbered tees mapped. White lines are hole routes, shaded areas are greens, fairways, bunkers and water.`:'No hole routes mapped here yet, so this is the plain aerial.'}${c.size?` Area shown is about ${c.size[0]} by ${c.size[1]} km.`:''}${c.geo?' Location comes from the street address and may be off.':''}</span>${c.pin?`<span id="vp" hidden>Satellite map centered on this course's Google Earth pin. Click the flag or this link: <a href="${earth}" target="_blank" rel="noopener">Open the pin in Google Earth</a></span>`:''}</figcaption>`:'<div class="none" id="vn">No location on record, so there is no aerial for this course.</div>'}</figure>
+ <div class="acts"><button class="btn go" onclick="print()">Print build sheet</button>${c.img?`<a class="btn" href="img/holes/${c.s}.jpg" download="${esc(c.n.replace(/[\\/:*?"<>|]/g,''))} course preview.jpg">Download Course Preview</a>`:''}${c.la&&['Aerial only','None','Partial hole map'].includes(c.lay)?`<a class="btn" href="draw.html?c=${c.s}">Draw hole map</a>`:''}${c.ob?'<button class="btn" id="osmck" type="button">Check OpenStreetMap</button>':''}${c.lidar.length?`<a class="btn" href="#lidar">Point cloud files, EPSG ${c.pe}</a>`:''}</div>${c.ob?'<p class="osmst" id="osmst" role="status" hidden></p>':''}
+ <div class="lead"><figure class="view"><div class="vt">${c.img?`<button aria-pressed="true" data-v="holes">Hole map</button><button aria-pressed="false" data-v="aerial">Clean aerial</button>${c.pin?'<button aria-pressed="false" data-v="pin">Satellite pin</button>':''}`:'<button aria-pressed="true" data-v="none">Aerial</button>'}<button aria-pressed="false" data-v="game">Game</button></div><div id="vg" hidden role="region" aria-label="PGA Tour 2K25 settings for ${esc(c.n)}">${game(c)}</div>${c.img?`<img id="vi" width="1200" height="900" src="img/holes/${c.s}.jpg" alt="Aerial of ${esc(c.n)} with mapped holes"><div id="vh" hidden role="region" aria-label="Zoomable hole map of ${esc(c.n)}"></div>${c.pin?`<div id="vf" hidden role="region" aria-label="Satellite map with the pin for ${esc(c.n)}"></div>`:''}<figcaption><span id="vc">${c.lay=='Traced hole map'?`${c.mapped} holes traced by hand on this aerial. Routes are approximate; check them against the course before building.`:c.mapped?`${c.mapped} numbered tees mapped. White lines are hole routes; shaded areas are fairways, greens, tees and bunkers.`:'No hole routes mapped here yet, so this is the plain aerial.'}${c.size?` Area shown is about ${c.size[0]} by ${c.size[1]} km.`:''}${c.geo?' Location comes from the street address and may be off.':''}<span id="vz" hidden> ${matchMedia('(hover:none)').matches?'Pinch to zoom and move the map.':'Click the map, then scroll to zoom; drag to move.'}</span></span>${c.pin?`<span id="vp" hidden>Satellite map centered on this course's Google Earth pin. Click the flag or this link: <a href="${earth}" target="_blank" rel="noopener">Open the pin in Google Earth</a></span>`:''}</figcaption>`:'<div class="none" id="vn">No location on record, so there is no aerial for this course.</div>'}</figure>
  <aside class="rail"><h2>What's ready</h2><ul class="check">
  ${ck(c.card=='Full'?'y':c.card=='None'?'n':'p','Scorecard',c.card=='Full'?`Hole by hole, ${c.csrc=='OpenGolfAPI'?'database record':c.csrc.toLowerCase()+' source'}`:c.card)}
  ${ck(c.lay=='Full hole map'?'y':c.lay=='Partial hole map'||c.lay=='Traced hole map'?'p':'n','Hole map',c.lay=='Traced hole map'?'Traced from the aerial, approximate':c.lay)}
- ${ck(c.gj?'y':'n','Hole shapes',c.gj?'Greens, fairways, bunkers and water on the map':'Not mapped')}
+ ${shapes(c)}
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
- <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">Not started</option><option>LIDAR done</option><option>In progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
+ <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option value="In progress">In Progress</option><option>LIDAR done</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
  <section class="printonly"><table><thead><tr><th>Hole</th><th>Par</th><th>Hcp</th><th>${esc(c.tees[0]||'Yards')}</th><th>In game</th><th>Notes</th></tr></thead><tbody>${c.holes.map(h=>`<tr><td>${h[0]}</td><td>${h[1]??''}</td><td>${h[2]??''}</td><td>${h[3][0]??''}</td><td style="width:70px"></td><td style="width:220px"></td></tr>`).join('')}</tbody></table></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>
@@ -188,7 +229,9 @@ async function kit(){
  ${c.note&&c.st!='Active'?`<section class="sec"><h2>Data note</h2><p>${esc(c.note)}</p></section>`:''}`;
  document.querySelectorAll('.vt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.vt button').forEach(x=>x.setAttribute('aria-pressed',x==b));const v=b.dataset.v,pin=v=='pin',gm=v=='game';
   $('vg').hidden=!gm;if($('vn'))$('vn').hidden=gm;if(!c.img)return;
-  $('vi').hidden=pin||gm;$('vc').hidden=pin||gm;if(c.pin){$('vf').hidden=!pin;$('vp').hidden=!pin}if(pin)pinmap(c.pin);else if(!gm)$('vi').src=`img/${v}/${c.s}.jpg`});
+  $('vi').hidden=pin||gm;$('vc').hidden=pin||gm;$('vh').hidden=true;$('vz').hidden=true;if(c.pin){$('vf').hidden=!pin;$('vp').hidden=!pin}
+  if(pin)pinmap(c.pin);else if(v=='holes')holemap(c);else if(!gm)$('vi').src=`img/${v}/${c.s}.jpg`});
+ if(c.img)holemap(c);  // the Hole map view opens as the zoomable map
  gwire(c);
  // Back returns to the list as it was: browser history when we came from it, otherwise the saved search.
  // Go back (keeping the list's search and scroll) only when the page before was the home page, never the hole editor.

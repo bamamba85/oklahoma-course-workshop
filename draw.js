@@ -19,8 +19,11 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,attribution:'USGS'}).addTo(map);
  // a partly mapped course: show its OpenStreetMap shapes, and start from its numbered OSM holes the first time
  mine.osm=mine.osm||[];
- if(c.gj)try{const g=await fetch(`files/geojson/${slug}.geojson`).then(r=>r.json()),FC={green:'#78FF8C',fairway:'#9BE07A',tee:'#FFFFFF',bunker:'#F5E1A5',water:'#4FA3E6',water_hazard:'#4FA3E6',lateral_water_hazard:'#4FA3E6'};
-  L.geoJSON(g,{filter:f=>f.properties.kind!='hole'&&FC[f.properties.kind],interactive:false,style:f=>({color:FC[f.properties.kind],weight:1,fillOpacity:.25})}).addTo(map);
+ if(c.gj)try{const g=await fetch(`files/geojson/${slug}.geojson`).then(r=>r.json());
+  // fairways, greens, tees and bunkers in the same colors as the hole-map pictures (no water), under the hole lines
+  map.createPane('shapes').style.zIndex=350;const shp=shapeLayer(g,'shapes');
+  if(shp.getLayers().length){shp.addTo(map);shapeKey().addTo(map);const sb=$('dshp');sb.hidden=false;
+   sb.onclick=()=>{const on=map.hasLayer(shp);on?map.removeLayer(shp):shp.addTo(map);sb.setAttribute('aria-pressed',!on);sb.textContent=on?'Shapes off':'Shapes on'}}
   if(!mine.at)for(const f of g.features){const n=parseInt(f.properties.ref);if(f.properties.kind=='hole'&&card.some(h=>h.n==n)&&!R[n]&&f.geometry.type=='LineString'){R[n]=f.geometry.coordinates.map(q=>[q[1],q[0]]);if(!c.osm||c.osm.h.some(h=>h[2]==n))mine.osm.push(n)}}
   if(mine.osm.length)sel=card.find(h=>!(R[h.n]?.length>=2))?.n??sel}catch{}
  const done=Object.values(R).flat();if(done.length>1)map.fitBounds(L.latLngBounds(done),{padding:[40,40]});

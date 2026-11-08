@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<link rel="stylesheet" href="app.css?v=27">
+<link rel="stylesheet" href="app.css?v=28">
 <style>
 html,body{height:100%}
 body.draw{display:flex;flex-direction:column;overflow:hidden}
@@ -27,15 +27,16 @@ body.draw{display:flex;flex-direction:column;overflow:hidden}
 .bend{background:#fff;border:2px solid #000;border-radius:50%}
 #dmap.placing,#dmap.placing .leaflet-interactive,#dmap.placing .leaflet-grab,#dmap.placing .leaflet-marker-icon{cursor:crosshair!important}
 #dadd[aria-pressed="true"]{background:var(--flag);border-color:var(--flag)}
+#dshp[hidden]{display:none}#dshp[aria-pressed="false"]{background:#E2EBDF}
 #dtxt{display:none;width:100%;height:80px;font:12px/1.4 Consolas,monospace}
 </style></head><body class="draw">
 <div class="dbar">
  <div class="row"><a class="back" id="dback" href="index.html">← Back to course</a><h1 id="dname">Draw hole map</h1>
   <button class="btn" id="dimp" type="button">Import from OSM</button><button class="btn go" id="ddl" type="button">Download for Claude</button><button class="btn" id="dosm" type="button">Export to OSM</button><button class="btn" id="dcp" type="button">Copy</button></div>
  <div class="holes" id="dholes" role="toolbar" aria-label="Holes"></div>
- <div class="row"><button class="btn go" id="dadd" type="button">Add hole</button><button class="btn" id="dbend" type="button">Add bend</button><button class="btn" id="dunb" type="button">Remove bend</button><button class="btn" id="dclr" type="button">Clear hole</button><span id="dst" role="status"></span></div>
+ <div class="row"><button class="btn go" id="dadd" type="button">Add hole</button><button class="btn" id="dbend" type="button">Add bend</button><button class="btn" id="dunb" type="button">Remove bend</button><button class="btn" id="dclr" type="button">Clear hole</button><button class="btn" id="dshp" type="button" aria-pressed="true" hidden>Shapes on</button><span id="dst" role="status"></span></div>
  <textarea id="dtxt" readonly aria-label="Hole routes"></textarea>
 </div>
 <div id="dmap" role="region" aria-label="Satellite map for drawing holes"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="app.js?v=27"></script><script src="draw.js?v=28"></script></body></html>
+<script src="app.js?v=28"></script><script src="draw.js?v=29"></script></body></html>
