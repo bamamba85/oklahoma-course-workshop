@@ -2,7 +2,7 @@
 Alva Golf & Country Club,Alva,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,12,214,Game Data/LIDAR Link Lists/alva-golf-and-country-club.txt,Game Data/GeoJSON Hole Geometry/alva-golf-and-country-club.geojson,Full
 Antlers Springs Golf Course,Antlers,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,226,Game Data/LIDAR Link Lists/antlers-springs-golf-course.txt,,Totals only
 Arrowhead State Park Golf Course,Canadian,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,6,316,Game Data/LIDAR Link Lists/arrowhead-state-park-golf-course.txt,Game Data/GeoJSON Hole Geometry/arrowhead-state-park-golf-course.geojson,Full
-Atoka Trails Golf Course,Atoka,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,171,Game Data/LIDAR Link Lists/atoka-trails-golf-course.txt,,Full
+Atoka Trails Golf Course,Atoka,Active,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,171,Game Data/LIDAR Link Lists/atoka-trails-golf-course.txt,Game Data/GeoJSON Hole Geometry/atoka-trails-golf-course.geojson,Full
 Bailey Ranch Golf Club,Owasso,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,20,459,Game Data/LIDAR Link Lists/bailey-ranch-golf-club.txt,Game Data/GeoJSON Hole Geometry/bailey-ranch-golf-club.geojson,Full
 Battle Creek Golf Club,Broken Arrow,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,21,532,Game Data/LIDAR Link Lists/battle-creek-golf-club.txt,Game Data/GeoJSON Hole Geometry/battle-creek-golf-club.geojson,Full
 Beaver Pioneer Park Golf Course,Beaver,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,187,Game Data/LIDAR Link Lists/beaver-pioneer-park-golf-course.txt,,Full
