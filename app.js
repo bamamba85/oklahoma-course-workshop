@@ -194,9 +194,11 @@ async function kit(){
  // Hole shapes: what OpenStreetMap really has (c.sh counts; c.shp is the build's strict rating: ✓ a green for
  // every hole plus fairways or bunkers, ~ incomplete, ✕ none — hole lines or water alone don't count).
  const shapes=c=>{const s=c.sh||{},nm={green:['green','greens'],fairway:['fairway','fairways'],tee:['tee box','tee boxes'],bunker:['bunker','bunkers'],water:['water area','water areas']},
-  list=Object.entries(s).map(([k,n])=>`${n} ${nm[k][n>1?1:0]}`).join(', '),st=c.shp||'n',nh=c.h||c.mapped||18;
+  list=Object.entries(s).filter(([k])=>nm[k]).map(([k,n])=>`${n} ${nm[k][n>1?1:0]}`).join(', '),st=c.shp||'n',nh=c.h||c.mapped||18,
+  // cart paths and clubhouse: listed so he knows they're in OpenStreetMap (not drawn, not part of the rating)
+  ext=[s.clubhouse?(s.clubhouse>1?`${s.clubhouse} clubhouses`:'clubhouse'):'',s.cartpath_m?`${s.cartpath_m>=1000?(s.cartpath_m/1000).toFixed(1)+' km':s.cartpath_m+' m'} of cart paths`:''].filter(Boolean).join(' · '),xt=ext?` · ${ext}`:'';
   const miss=st=='p'?[(s.green||0)<nh?`${(s.green||0)?'only '+s.green:'no'} green${s.green==1?'':'s'} for ${nh} holes`:'',!(s.fairway||s.bunker)?'no fairways or bunkers':''].filter(Boolean).join(', '):'';
-  return ck(st,'Hole shapes',st=='y'?list:st=='p'?`Incomplete: ${miss}. Has ${list}`:c.mapped?`No greens, fairways or bunkers mapped yet${s.water?` (only ${list})`:''}`:'Not mapped')};
+  return ck(st,'Hole shapes',(st=='y'?list:st=='p'?`Incomplete: ${miss}. Has ${list}`:c.mapped?`No greens, fairways or bunkers mapped yet${s.water?` (only ${list})`:''}`:ext?'No greens, fairways or bunkers mapped':'Not mapped')+xt)};
  const lat=c.la,lon=c.lo,mb=a=>a.reduce((x,i)=>x+i.mb,0),feet=(c.pn||'').includes('ftUS');
  const ft=a=>`<div class="sw"><table><thead><tr><th>File</th><th>EPSG</th><th>Size</th><th>Published</th></tr></thead><tbody>${a.map(f=>`<tr><td><a href="${esc(f.u)}">${esc(f.t.replace('USGS Lidar Point Cloud ','').replace('USGS 1 Meter ',''))}</a></td><td>${f.e??''}</td><td>${f.mb} MB</td><td>${esc(f.d||'')}</td></tr>`).join('')}</tbody></table></div>`;
  const earth=c.pin?`https://earth.google.com/web/search/${c.pin[0]},${c.pin[1]}`:`https://earth.google.com/web/@${lat},${lon},400a,2500d,35y,0h,0t,0r`;
