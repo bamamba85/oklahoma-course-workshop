@@ -50,7 +50,7 @@ async function home(){
  const SK='okw-list';let saved=null;
  function save(){try{sessionStorage.setItem(SK,JSON.stringify({tab,q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
  try{saved=JSON.parse(sessionStorage.getItem(SK)||'null')}catch{}
- if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
+ if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
