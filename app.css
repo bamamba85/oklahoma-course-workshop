@@ -54,6 +54,8 @@ input,select,textarea{border:1px solid #93A69B;background:#fff;border-radius:var
 .kit h1{font-size:clamp(40px,6vw,76px);margin:4px 0 6px}
 .sum{font-size:18px;margin:0;max-width:70ch}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 20px}
+.osmst{margin:-8px 0 20px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--fairway-dk);border-radius:var(--r);background:var(--panel)}.osmst[hidden]{display:none}
+.osmst .btn{min-height:36px;padding:5px 12px;margin:6px 6px 0 0}.osmst small{color:var(--soft)}
 .btn{display:inline-flex;align-items:center;min-height:44px;padding:9px 14px;border:1px solid var(--ink);border-radius:var(--r);background:none;color:var(--ink);text-decoration:none;cursor:pointer;font-weight:600}
 .btn:active{background:var(--ink);color:#fff}.btn.go{background:var(--fairway-dk);border-color:var(--fairway-dk);color:#fff}
 @media(hover:hover) and (pointer:fine){.brand:hover,.top nav a:hover{color:var(--sand)}.btn:hover,.btn.go:hover{background:var(--ink);color:#fff}}

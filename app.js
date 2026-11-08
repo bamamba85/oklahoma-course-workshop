@@ -99,6 +99,38 @@ const gbase=c=>{const g=c.gm||{};return Object.assign(Object.fromEntries(g.set||
 // One CSV laid out like Details 25: list holds [course name, value getter] pairs.
 function gcsv(list){const q=x=>/[",\r\n]/.test(x)?`"${x.replace(/"/g,'""')}"`:x,row=(n,v)=>{const r=Array(23).fill('');r[0]=n;GL.forEach((k,i)=>r[GCOL[i]]=v(k));r[22]=v('Theme');return r};
  return [row('Course Name',k=>k.replace('Terrain Water','Terrain Water Level')),...list.map(([n,v])=>row(n,v))].map(r=>r.map(x=>q(String(x??''))).join(',')).join('\r\n')+'\r\n'}
+// OpenStreetMap check. c.ob is the course's map area [south,west,north,east]; c.osm is what the last
+// update_hole_map.py pull used: {at: OpenStreetMap data time, h: [[way id, version, hole number], ...]}.
+// Two public Overpass servers are asked at once; the first good answer wins and the other request is cancelled.
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+async function osmHoles(c){const q=`[out:json][timeout:50];way["golf"="hole"](${c.ob.join(',')});out meta geom;`,stop=new AbortController(),t=setTimeout(()=>stop.abort(),60000);
+ try{const d=await Promise.any(OVERPASS.map(async u=>{const r=await fetch(u+'?data='+encodeURIComponent(q),{signal:stop.signal});if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.elements)throw new Error('bad answer');return j}));
+  return d.elements.filter(e=>e.geometry?.length>1).map(e=>{const ref=String(e.tags?.ref??'').split(';')[0],m=ref.match(/(\d+)\s*$/);
+   return {id:e.id,v:e.version,ts:e.timestamp,n:m?+m[1]:null,g:e.geometry.map(p=>[p.lat,p.lon])}})}
+ finally{clearTimeout(t);stop.abort()}}
+function osmCompare(c,ws){const by=new Map(ws.map(w=>[w.id,w])),o=c.osm;
+ if(!o)return {found:[...new Set(ws.filter(w=>w.n).map(w=>w.n))].sort((a,b)=>a-b)};
+ const mine=new Set(o.h.map(h=>h[0])),r={edited:[],removed:[],added:[]};
+ for(const [id,v,n] of o.h){const w=by.get(id);if(!w)r.removed.push({n});else if(w.v!=v)r.edited.push({n,ts:w.ts})}
+ r.added=ws.filter(w=>!mine.has(w.id)&&w.n&&w.ts>o.at);return r}
+// This course's holes from an OpenStreetMap answer: the lines the last pull used (in this course's numbering),
+// plus numbered lines added since. With no pull on record, every numbered line in the area, nearest first.
+function osmPick(c,ws,nums,start){const known=new Map((c.osm?.h||[]).map(h=>[h[0],h[2]])),got={},d2=(a,b)=>(a[0]-b[0])**2+((a[1]-b[1])*Math.cos(a[0]*Math.PI/180))**2;
+ for(const w of ws){let n=known.get(w.id);if(n==null){if(c.osm&&!(w.ts>c.osm.at))continue;n=w.n}if(!nums.includes(n))continue;
+  const d=d2(start(n)||[c.la,c.lo],w.g[0]);if(!got[n]||d<got[n].d)got[n]={g:w.g,d}}
+ return Object.fromEntries(Object.entries(got).map(([n,x])=>[n,x.g]))}
+async function osmCheck(c){const st=$('osmst'),b=$('osmck'),day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}),rng=ns=>{const o=[];for(let i=0;i<ns.length;){let j=i;while(j+1<ns.length&&ns[j+1]==ns[j]+1)j++;o.push(j-i>=2?`${ns[i]}–${ns[j]}`:ns.slice(i,j+1).join(', '));i=j+1}return o.join(', ')},
+  list=a=>rng([...new Set(a.map(x=>x.n).filter(n=>n!=null))].sort((x,y)=>x-y)),s=a=>a.length>1?'s':'';
+ st.hidden=false;if(window.OKW_PREVIEW){st.textContent="The OpenStreetMap check can't reach OpenStreetMap from this preview. It works on the website and the local test site.";return}
+ b.disabled=true;st.textContent='Checking OpenStreetMap… (this can take up to a minute when its servers are busy)';
+ try{const r=osmCompare(c,await osmHoles(c));let msg,ch=false;
+  if(!c.osm){if(!r.found.length)msg='No holes in OpenStreetMap here yet.';else{ch=true;msg=c.mapped?`This map has no record of which OpenStreetMap lines it came from, so it can't be compared. OpenStreetMap has numbered hole lines in this area: ${rng(r.found)}.`:`OpenStreetMap has numbered hole lines in this area (${rng(r.found)}) that this map doesn't use yet.`}}
+  else{const p=[];if(r.added.length)p.push(`new hole line${s(r.added)} ${list(r.added)}`);if(r.edited.length)p.push(`hole${s(r.edited)} ${list(r.edited)} changed`);if(r.removed.length)p.push(`hole${s(r.removed)} ${list(r.removed)} removed`);
+   const last=[...r.added,...r.edited].map(x=>x.ts).sort().pop();
+   if(p.length){ch=true;msg=`OpenStreetMap has changes: ${p.join(', ')}${last?` (latest ${day(last)})`:''}.`}else msg=`Up to date: no changes to these holes in OpenStreetMap since ${day(c.osm.at)}.`}
+  st.innerHTML=esc(msg)+(ch?` <button class="btn" id="osmcp" type="button">Copy update request</button> <small>Paste it to Claude to redraw this map from OpenStreetMap.</small>`:'');
+  if(ch)$('osmcp').onclick=async()=>{const t=`/updatecourse ${c.s}`;try{await navigator.clipboard.writeText(t);$('osmcp').textContent='Copied'}catch{prompt('Copy this and paste it to Claude:',t)}}}
+ catch{st.textContent="Couldn't get an answer from OpenStreetMap. Its servers may be busy; try again in a few minutes."}finally{b.disabled=false}}
 function fileout(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function game(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{},val=k=>String(k in mine?mine[k]:base[k]??'');
  const pub={you:'Published by Oklahoma Course Workshop',others:'Published by another designer'}[g.pub]||'Not published yet';
@@ -133,12 +165,12 @@ async function kit(){
  const facts=[['Address',[c.a,c.ci,c.z].filter(Boolean).join(', ')],['Type',c.t],['Designer',c.ar],['Opened',c.yr],['Rating and slope',c.sl?`${c.ra} / ${c.sl}`:''],['Our difficulty label',c.d],['Grass',[c.fg,c.gg].filter(Boolean).join(' fairways, ')+(c.gg?' greens':'')],['Also known as',c.aka],['Ranking',c.rk],['On site',c.am.join(', ')],['Tournaments',c.ev.map(e=>e.y+' '+e.e).join('; ')]].filter(x=>x[1]);
  K.innerHTML=`<a class="back" id="back" href="index.html">← Back to courses</a><p class="crumb"><a href="index.html">All courses</a> / ${esc(c.r)} / ${esc(c.ci)}</p><h1>${esc(c.n)}</h1>
  <p class="sum">${c.st!='Active'?`<span class="lost ${c.st}">${c.st}</span> `:''}${[c.h?c.h+' holes':'',c.p?'par '+c.p:'',c.y?fmt(c.y)+' yards':''].filter(Boolean).join(', ')}${c.ci?' in '+esc(c.ci):''}.</p>
- <div class="acts"><button class="btn go" onclick="print()">Print build sheet</button>${c.gj?`<a class="btn" href="files/geojson/${c.s}.geojson" download>Download hole shapes</a>`:''}${c.img?`<a class="btn" href="img/aerial/${c.s}.jpg" download>Download clean aerial</a>`:''}${c.la&&['Aerial only','None','Partial hole map'].includes(c.lay)?`<a class="btn" href="draw.html?c=${c.s}">Draw hole map</a>`:''}${c.lidar.length?`<a class="btn" href="#lidar">Point cloud files, EPSG ${c.pe}</a>`:''}</div>
+ <div class="acts"><button class="btn go" onclick="print()">Print build sheet</button>${c.img?`<a class="btn" href="img/holes/${c.s}.jpg" download="${esc(c.n.replace(/[\\/:*?"<>|]/g,''))} ${c.mapped?'hole map':'aerial'}.jpg">${c.mapped?'Download hole map (JPG)':'Download aerial (JPG)'}</a>`:''}${c.la&&['Aerial only','None','Partial hole map'].includes(c.lay)?`<a class="btn" href="draw.html?c=${c.s}">Draw hole map</a>`:''}${c.ob?'<button class="btn" id="osmck" type="button">Check OpenStreetMap</button>':''}${c.lidar.length?`<a class="btn" href="#lidar">Point cloud files, EPSG ${c.pe}</a>`:''}</div>${c.ob?'<p class="osmst" id="osmst" role="status" hidden></p>':''}
  <div class="lead"><figure class="view"><div class="vt">${c.img?`<button aria-pressed="true" data-v="holes">Hole map</button><button aria-pressed="false" data-v="aerial">Clean aerial</button>${c.pin?'<button aria-pressed="false" data-v="pin">Satellite pin</button>':''}`:'<button aria-pressed="true" data-v="none">Aerial</button>'}<button aria-pressed="false" data-v="game">Game</button></div><div id="vg" hidden role="region" aria-label="PGA Tour 2K25 settings for ${esc(c.n)}">${game(c)}</div>${c.img?`<img id="vi" width="1200" height="900" src="img/holes/${c.s}.jpg" alt="Aerial of ${esc(c.n)} with mapped holes">${c.pin?`<div id="vf" hidden role="region" aria-label="Satellite map with the pin for ${esc(c.n)}"></div>`:''}<figcaption><span id="vc">${c.lay=='Traced hole map'?`${c.mapped} holes traced by hand on this aerial. Routes are approximate; check them against the course before building.`:c.mapped?`${c.mapped} numbered tees mapped. White lines are hole routes, shaded areas are greens, fairways, bunkers and water.`:'No hole routes mapped here yet, so this is the plain aerial.'}${c.size?` Area shown is about ${c.size[0]} by ${c.size[1]} km.`:''}${c.geo?' Location comes from the street address and may be off.':''}</span>${c.pin?`<span id="vp" hidden>Satellite map centered on this course's Google Earth pin. Click the flag or this link: <a href="${earth}" target="_blank" rel="noopener">Open the pin in Google Earth</a></span>`:''}</figcaption>`:'<div class="none" id="vn">No location on record, so there is no aerial for this course.</div>'}</figure>
  <aside class="rail"><h2>What's ready</h2><ul class="check">
  ${ck(c.card=='Full'?'y':c.card=='None'?'n':'p','Scorecard',c.card=='Full'?`Hole by hole, ${c.csrc=='OpenGolfAPI'?'database record':c.csrc.toLowerCase()+' source'}`:c.card)}
  ${ck(c.lay=='Full hole map'?'y':c.lay=='Partial hole map'||c.lay=='Traced hole map'?'p':'n','Hole map',c.lay=='Traced hole map'?'Traced from the aerial, approximate':c.lay)}
- ${ck(c.gj?'y':'n','Hole shapes',c.gj?'GeoJSON download':'Not mapped')}
+ ${ck(c.gj?'y':'n','Hole shapes',c.gj?'Greens, fairways, bunkers and water on the map':'Not mapped')}
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
  <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">Not started</option><option>LIDAR done</option><option>In progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
@@ -159,7 +191,9 @@ async function kit(){
   $('vi').hidden=pin||gm;$('vc').hidden=pin||gm;if(c.pin){$('vf').hidden=!pin;$('vp').hidden=!pin}if(pin)pinmap(c.pin);else if(!gm)$('vi').src=`img/${v}/${c.s}.jpg`});
  gwire(c);
  // Back returns to the list as it was: browser history when we came from it, otherwise the saved search.
- $('back').onclick=e=>{try{const r=new URL(document.referrer);if(r.origin===location.origin&&!r.pathname.endsWith('course.html')&&history.length>1){e.preventDefault();history.back()}}catch{}};
+ // Go back (keeping the list's search and scroll) only when the page before was the home page, never the hole editor.
+ $('back').onclick=e=>{try{const r=new URL(document.referrer);if(r.origin===location.origin&&/(\/|index\.html|home\.html)$/.test(r.pathname)&&history.length>1){e.preventDefault();history.back()}}catch{}};
+ if(c.ob)$('osmck').onclick=()=>osmCheck(c);
  $('bs').value=me.st||'';$('bn').value=me.note||'';
  const save=()=>{const v=store.get();v[c.s]={st:$('bs').value,note:$('bn').value};if(!v[c.s].st&&!v[c.s].note)delete v[c.s];store.set(v);fetch('data/index.json').then(r=>r.json()).then(d=>progress(d.length))};
  $('bs').oninput=save;$('bn').oninput=save}
