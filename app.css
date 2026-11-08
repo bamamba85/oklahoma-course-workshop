@@ -41,7 +41,7 @@ input,select,textarea{border:1px solid #93A69B;background:#fff;border-radius:var
 .rows{list-style:none;margin:0;padding:0}
 .rows a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:11px 18px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
 .rows a:focus-visible,.rows a.on,.rows a:active{background:#E2EBDF}
-.rows b{font-weight:700}.rows .m{color:var(--soft);font-size:14px}.rows .num{text-align:right;font-size:14px;white-space:nowrap}
+.rows b{font-weight:700}.rows .nc{display:inline-block;margin-left:6px;padding:2px 7px;border:1px solid var(--sand);border-radius:999px;background:#FBEFD0;color:#7A5C10;font:700 10.5px/1.3 var(--ui);letter-spacing:.04em;text-transform:uppercase;vertical-align:2px;white-space:nowrap}.rows .m{color:var(--soft);font-size:14px}.rows .num{text-align:right;font-size:14px;white-space:nowrap}
 .tier{font-size:14px;font-weight:700}.tier.Ready{color:var(--fairway-dk)}.tier.Good{color:#7A5C10}.tier.Thin{color:var(--soft)}
 .rows .lost{display:inline-block;padding:1px 6px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
 .mine{font-weight:700;color:#7A5C10}.mine.Built{color:var(--fairway-dk)}.mine.Done{color:var(--water)}.mine.auto{font-weight:600;color:var(--soft)}
