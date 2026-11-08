@@ -32,11 +32,11 @@ body.draw{display:flex;flex-direction:column;overflow:hidden}
 </style></head><body class="draw">
 <div class="dbar">
  <div class="row"><a class="back" id="dback" href="index.html">← Back to course</a><h1 id="dname">Draw hole map</h1>
-  <button class="btn" id="dimp" type="button">Import from OSM</button><button class="btn go" id="ddl" type="button">Download for Claude</button><button class="btn" id="dosm" type="button">Export to OSM</button><button class="btn" id="dcp" type="button">Copy</button></div>
+  <button class="btn" id="dimp" type="button">Import from OSM</button><button class="btn go" id="dcp" type="button">Copy for Claude</button><button class="btn" id="dosm" type="button">Export to OSM</button></div>
  <div class="holes" id="dholes" role="toolbar" aria-label="Holes"></div>
  <div class="row"><button class="btn go" id="dadd" type="button">Add hole</button><button class="btn" id="dbend" type="button">Add bend</button><button class="btn" id="dunb" type="button">Remove bend</button><button class="btn" id="dclr" type="button">Clear hole</button><button class="btn" id="dshp" type="button" aria-pressed="true" hidden>Shapes on</button><span id="dst" role="status"></span></div>
  <textarea id="dtxt" readonly aria-label="Hole routes"></textarea>
 </div>
 <div id="dmap" role="region" aria-label="Satellite map for drawing holes"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="app.js?v=31"></script><script src="draw.js?v=29"></script></body></html>
+<script src="app.js?v=31"></script><script src="draw.js?v=30"></script></body></html>

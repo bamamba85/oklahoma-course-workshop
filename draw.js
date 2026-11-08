@@ -1,6 +1,7 @@
 // Hole editor (draw.html?c=<slug>): the owner marks tees, bends and greens on the USGS satellite map
 // for a course with no hole map. Routes save in this browser (localStorage 'okw-trace', never 'okw')
-// and download as <slug>-holes.geojson, which Build Kit/import_traced.py turns into a traced hole map.
+// and Copy for Claude puts them on the clipboard as GeoJSON; he pastes it into the chat with /holes,
+// and Build Kit/import_traced.py turns it into a traced hole map.
 const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw-trace',JSON.stringify(v))}catch{}}};
 (async function draw(){
  const slug=new URLSearchParams(location.search).get('c'),st=$('dst');
@@ -58,7 +59,7 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  function place(ll){const p=R[sel]||(R[sel]=[]);p.push([ll.lat,ll.lng]);save();
   if(p.length<2){render();return}
   const was=sel,nx=card.find(h=>!(R[h.n]?.length>=2));setPlacing(false);if(nx)sel=nx.n;render();
-  st.textContent=`Hole ${was} placed.`+(nx?` Click Add hole to place hole ${nx.n}.`:' Every hole is placed. Click Download for Claude when they look right.')}
+  st.textContent=`Hole ${was} placed.`+(nx?` Click Add hole to place hole ${nx.n}.`:' Every hole is placed. Click Copy for Claude when they look right.')}
  $('dadd').onclick=()=>{
   if(placing){if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false);render();return}
   const h=R[sel]?.length>=2?card.find(x=>!(R[x.n]?.length>=2)):card.find(x=>x.n==sel);
@@ -75,7 +76,6 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  const geo=()=>JSON.stringify({type:'FeatureCollection',course:slug,name:c.n,
   source:`Drawn by the owner on the USGS aerial in the site's hole editor, ${new Date().toISOString().slice(0,10)}. Hole order from the owner. Approximate.`,
   features:card.filter(h=>R[h.n]?.length>=2).map(h=>({type:'Feature',properties:{kind:'hole',ref:String(h.n),par:String(h.par??''),...(mine.osm.includes(h.n)?{osm:true}:{})},geometry:{type:'LineString',coordinates:R[h.n].map(q=>[+q[1].toFixed(7),+q[0].toFixed(7)])}}))},null,1);
- $('ddl').onclick=()=>{fileout(`${slug}-holes.geojson`,geo(),'application/geo+json');st.textContent=`Saved ${slug}-holes.geojson to your Downloads. Tell Claude it is ready.`};
  // Export to OSM: a JOSM file with only the holes drawn here (not ones that came from OpenStreetMap),
  // in the same form as Build Kit/import_traced.py's OSM Uploads files. He checks and uploads it in JOSM himself.
  const osmXml=hs=>{const q=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));let id=0;const nodes=[],ways=[];
@@ -97,6 +97,6 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   if(!confirm(`OpenStreetMap has hole${ns.length>1?'s':''} ${ns.join(', ')} for ${c.n}.`+(over.length?`\n\nThis replaces your drawn line${over.length>1?'s':''} for hole${over.length>1?'s':''} ${over.join(', ')}.`:'')+'\n\nLoad them onto the map?')){hint();return}
   for(const n of ns){R[n]=got[n];if(!mine.osm.includes(n))mine.osm.push(n)}save();render();
   map.fitBounds(L.latLngBounds(Object.values(R).flat()),{padding:[40,40]});st.textContent=`Loaded hole${ns.length>1?'s':''} ${ns.join(', ')} from OpenStreetMap.`};
- $('dcp').onclick=async()=>{const t=$('dtxt');t.value=geo();try{await navigator.clipboard.writeText(t.value);st.textContent='Copied. Paste it into the chat with Claude.'}catch{t.style.display='block';t.select();st.textContent='Press Ctrl+C to copy, then paste it into the chat.'}};
+ $('dcp').onclick=async()=>{const t=$('dtxt');t.value=geo();try{await navigator.clipboard.writeText(t.value);st.textContent='Copied. In the chat with Claude, type /holes, press Ctrl+V and send.'}catch{t.style.display='block';t.select();st.textContent='Press Ctrl+C to copy. In the chat with Claude, type /holes, press Ctrl+V and send.'}};
  render();
 })();
