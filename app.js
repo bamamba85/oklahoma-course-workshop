@@ -84,12 +84,21 @@ function leaflet(){if(window.L)return Promise.resolve(true);if(LL)return LL;
  const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';l.crossOrigin='';document.head.append(l);
  return LL=new Promise(r=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';s.onload=()=>r(true);s.onerror=()=>r(false);document.head.append(s)})}
 // Shape colors, the same as the hole-map pictures (Build Kit/hole_map_style.py). Water is left out on purpose.
-const SHAPE_STYLE={fairway:{fillColor:'rgb(60,200,60)',fillOpacity:.37,color:'rgb(105,190,75)',weight:2},tee:{fillColor:'#fff',fillOpacity:.47,color:'#fff',weight:2},
+// Listed bottom to top: the driving range sits under everything (owner, Nov 8 2026: range and tees with green edges).
+const SHAPE_STYLE={driving_range:{fillColor:'rgb(200,235,120)',fillOpacity:.27,color:'rgb(85,170,85)',weight:3},
+ fairway:{fillColor:'rgb(60,200,60)',fillOpacity:.37,color:'rgb(105,190,75)',weight:2},tee:{fillColor:'rgb(170,225,150)',fillOpacity:.67,color:'rgb(40,120,45)',weight:2},
  green:{fillColor:'rgb(110,255,140)',fillOpacity:.59,color:'rgb(235,255,235)',weight:3},bunker:{fillColor:'rgb(255,236,170)',fillOpacity:.92,color:'rgb(110,80,20)',weight:2}};
+// Satellite layers: USGS's ready-made tiles stop at zoom 16, so from 17 up the sharper USGS NAIP photos are asked for
+// tile by tile (sharp to about 18, enlarged past that). The zoom-16 tiles stay underneath in case NAIP is slow or down.
+const NAIP='https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
+function imagery(map,max){const u=L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:max,attribution:'USGS'}).addTo(map);
+ const N=L.TileLayer.extend({getTileUrl(c){const W=20037508.342789244,s=2*W/2**c.z,x=-W+c.x*s,y=W-c.y*s;
+  return `${NAIP}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpg&f=image`}});
+ new N('',{minZoom:17,maxNativeZoom:18,maxZoom:max,attribution:'USGS NAIP'}).addTo(map);return u}
 function shapeLayer(g,pane){const order=Object.keys(SHAPE_STYLE),fs=g.features.filter(f=>SHAPE_STYLE[f.properties.kind]&&/Polygon/.test(f.geometry.type)).sort((a,b)=>order.indexOf(a.properties.kind)-order.indexOf(b.properties.kind));
  return L.geoJSON({type:'FeatureCollection',features:fs},{pane,interactive:false,style:f=>({...SHAPE_STYLE[f.properties.kind],opacity:1})})}
-function shapeKey(){const k=L.control({position:'bottomleft'});k.onAdd=()=>{const d=L.DomUtil.create('div','skey');
- d.innerHTML=[['Fairway','fairway'],['Green','green'],['Tee','tee'],['Bunker','bunker']].map(([t,s])=>`<span><i style="background:${SHAPE_STYLE[s].fillColor};border-color:${SHAPE_STYLE[s].color}"></i>${t}</span>`).join('');return d};return k}
+function shapeKey(g){const k=L.control({position:'bottomleft'});k.onAdd=()=>{const d=L.DomUtil.create('div','skey');
+ d.innerHTML=[['Fairway','fairway'],['Green','green'],['Tee','tee'],['Bunker','bunker'],...(g?.features.some(f=>f.properties.kind=='driving_range')?[['Range','driving_range']]:[])].map(([t,s])=>`<span><i style="background:${SHAPE_STYLE[s].fillColor};border-color:${SHAPE_STYLE[s].color}"></i>${t}</span>`).join('');return d};return k}
 // Hole map view: zoomable USGS satellite map with the course's shapes, hole lines and numbered tees. Shows the
 // hole-map picture instead in the preview, when the map library can't load, or when the USGS tiles fail.
 let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=true;box.hidden=true;$('vz').hidden=true;$('vi').hidden=false;$('vi').src=`img/holes/${c.s}.jpg`};
@@ -97,7 +106,7 @@ let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=
  if(hmFail||window.OKW_PREVIEW||!c.ob||!await leaflet())return pic();
  box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;const touch=matchMedia('(hover:none)').matches;
  hm=L.map(box,{dragging:!touch,scrollWheelZoom:false,maxZoom:19,zoomSnap:.5});hm.createPane('shapes').style.zIndex=350;
- const t=L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:19,attribution:'USGS'}).addTo(hm);let got=0,bad=0;
+ const t=imagery(hm,19);let got=0,bad=0;
  t.on('tileload',()=>got++);t.on('tileerror',()=>{if(++bad>=4&&!got&&hm){hm.remove();hm=null;pic()}});
  const frame=L.latLngBounds([[c.ob[0],c.ob[1]],[c.ob[2],c.ob[3]]]);hm.fitBounds(frame);
  let g=null;if(c.gj)try{g=await fetch(`files/geojson/${c.s}.geojson`).then(r=>r.json())}catch{}
@@ -108,7 +117,7 @@ let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=
  const ctl=L.control({position:'topright'});ctl.onAdd=()=>{const d=L.DomUtil.create('div','hmctl');d.innerHTML='<button type="button" data-a="fit">Fit course</button>'+(has?'<button type="button" data-a="shp" aria-pressed="true">Shapes on</button>':'');
   L.DomEvent.disableClickPropagation(d);d.onclick=e=>{const a=e.target.dataset.a;if(a=='fit')hm.fitBounds(frame);
    if(a=='shp'){const on=hm.hasLayer(shp);on?hm.removeLayer(shp):shp.addTo(hm);e.target.setAttribute('aria-pressed',!on);e.target.textContent=on?'Shapes off':'Shapes on'}};return d};ctl.addTo(hm);
- if(has)shapeKey().addTo(hm);
+ if(has)shapeKey(g).addTo(hm);
  // the mouse wheel zooms only after a click on the map, so scrolling the page doesn't get caught by it
  hm.on('click',()=>hm.scrollWheelZoom.enable());hm.on('mouseout',()=>hm.scrollWheelZoom.disable())}
 let pm;async function pinmap(p){if(pm){pm.invalidateSize();return}
@@ -195,8 +204,9 @@ async function kit(){
  // every hole plus fairways or bunkers, ~ incomplete, ✕ none — hole lines or water alone don't count).
  const shapes=c=>{const s=c.sh||{},nm={green:['green','greens'],fairway:['fairway','fairways'],tee:['tee box','tee boxes'],bunker:['bunker','bunkers'],water:['water area','water areas']},
   list=Object.entries(s).filter(([k])=>nm[k]).map(([k,n])=>`${n} ${nm[k][n>1?1:0]}`).join(', '),st=c.shp||'n',nh=c.h||c.mapped||18,
-  // cart paths and clubhouse: listed so he knows they're in OpenStreetMap (not drawn, not part of the rating)
-  ext=[s.clubhouse?(s.clubhouse>1?`${s.clubhouse} clubhouses`:'clubhouse'):'',s.cartpath_m?`${s.cartpath_m>=1000?(s.cartpath_m/1000).toFixed(1)+' km':s.cartpath_m+' m'} of cart paths`:''].filter(Boolean).join(' · '),xt=ext?` · ${ext}`:'';
+  // clubhouse, driving range and cart paths: listed so he knows they're in OpenStreetMap (not part of the rating;
+  // the range is drawn on the map, the others aren't)
+  ext=[s.clubhouse?(s.clubhouse>1?`${s.clubhouse} clubhouses`:'clubhouse'):'',s.driving_range?(s.driving_range>1?`${s.driving_range} driving ranges`:'driving range'):'',s.cartpath_m?`${s.cartpath_m>=1000?(s.cartpath_m/1000).toFixed(1)+' km':s.cartpath_m+' m'} of cart paths`:''].filter(Boolean).join(' · '),xt=ext?` · ${ext}`:'';
   const miss=st=='p'?[(s.green||0)<nh?`${(s.green||0)?'only '+s.green:'no'} green${s.green==1?'':'s'} for ${nh} holes`:'',!(s.fairway||s.bunker)?'no fairways or bunkers':''].filter(Boolean).join(', '):'';
   return ck(st,'Hole shapes',(st=='y'?list:st=='p'?`Incomplete: ${miss}. Has ${list}`:c.mapped?`No greens, fairways or bunkers mapped yet${s.water?` (only ${list})`:''}`:ext?'No greens, fairways or bunkers mapped':'Not mapped')+xt)};
  const lat=c.la,lon=c.lo,mb=a=>a.reduce((x,i)=>x+i.mb,0),feet=(c.pn||'').includes('ftUS');
