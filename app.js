@@ -184,9 +184,19 @@ function game(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{},val=k
  const panel=([t,k,re])=>`<section class="gp ${k}"><h3>${t}</h3>${['Theme',...GL].filter(l=>re.test(l)).map(field).join('')}</section>`;
  const col=ks=>GS.filter(s=>ks.includes(s[1])).map(panel).join('');
  return `<div class="gh"><h2>PGA Tour 2K25</h2><span>${pub}</span></div>
- <div class="gt"><button type="button" class="btn" id="gdl">Download settings (CSV)</button><button type="button" class="btn" id="grs" hidden>Undo my edits</button><span id="gst" role="status"></span></div>
+ <div class="gt"><button type="button" class="btn" id="gdl">Download Game Setting (CSV)</button><button type="button" class="btn" id="grs" hidden>Undo my edits</button><span id="gst" role="status"></span></div>
  <div class="gc"><div>${col(['fw','gr','ro'])}</div><div>${col(['th','bu','te'])}</div></div>
  <p class="gn">${g.set&&g.set.length?'Settings from the 2K25 course designer. Textures are the slot numbers in each picker.':'No 2K25 settings recorded yet. Type yours in.'} Changes save in this browser only. The CSV row lines up with your Details 25 sheet, so it pastes straight in.</p>`}
+// The printed build sheet's 2K25 block (owner, Nov 8 2026): every game setting as plain text, values as the Game tab
+// shows them in this browser (✱ = changed here, not yet in the workbook); blank lines to write on when there's none.
+const GPRINT=[['Theme',[['','Theme']]],['Fairway',[['Texture','Fairway Texture'],['Mow width','Fairway Mow Width'],['Mow intensity','Fairway Mow Intensity']]],
+ ['Green',[['Texture','Green Texture'],['Mow width','Green Mow Width'],['Mow intensity','Green Mow Intensity']]],['Rough',[['Light texture','Light Rough Texture'],['Heavy texture','Heavy Rough Texture']]],
+ ['Bunker',[['Texture','Bunker Texture']]],['Terrain',[['Water level','Terrain Water'],['Hills','Terrain Hills'],['Trees','Terrain Trees'],['Plants','Terrain Plants'],['Grass','Terrain Grass'],['Rocks','Terrain Rocks']]]];
+function gprint(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{};let ed=false;
+ const v=k=>{const x=String((k in mine?mine[k]:base[k])??'').trim();if(!x)return '<span class="blank"></span>';if(k in mine)ed=true;return esc(x)+(k in mine?'<sup>✱</sup>':'')};
+ const pub={you:'Published by Oklahoma Course Workshop',others:'Published by another designer'}[g.pub]||'Not published yet';
+ const rows=GPRINT.map(([t,fs])=>`<dt>${t}</dt><dd>${fs.map(([l,k])=>`<span>${l?esc(l)+' ':''}<b>${v(k)}</b></span>`).join('')}</dd>`).join('');
+ return `<h2>PGA Tour 2K25 settings</h2><p class="pgpub">${pub}</p><dl class="pg">${rows}</dl>${ed?'<p class="pgnote">✱ changed in this browser, not yet in your workbook</p>':''}`}
 function gwire(c){const base=gbase(c),box=$('vg');
  function mark(){const m=gstore.get()[c.s]||{},n=Object.keys(m).length;box.querySelectorAll('[data-k]').forEach(i=>i.classList.toggle('ed',i.dataset.k in m));$('grs').hidden=!n;$('gst').textContent=n?`${n} ${n==1?'change':'changes'} saved in this browser`:''}
  box.oninput=e=>{const k=e.target.dataset.k;if(!k)return;const all=gstore.get(),m=all[c.s]||{},v=e.target.value.trim();
@@ -230,7 +240,7 @@ async function kit(){
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
  <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option value="In progress">In Progress</option><option>LIDAR done</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
- <section class="printonly"><table><thead><tr><th>Hole</th><th>Par</th><th>Hcp</th><th>${esc(c.tees[0]||'Yards')}</th><th>In game</th><th>Notes</th></tr></thead><tbody>${c.holes.map(h=>`<tr><td>${h[0]}</td><td>${h[1]??''}</td><td>${h[2]??''}</td><td>${h[3][0]??''}</td><td style="width:70px"></td><td style="width:220px"></td></tr>`).join('')}</tbody></table></section>
+ <section class="printonly pgame" id="pgame">${gprint(c)}</section><section class="printonly pnotes"><h2>Notes:</h2><div class="pnl"></div></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>
  <p class="acts"><a class="btn go" href="files/lidar/${c.s}.txt" download>Download point cloud link list</a> <a class="btn" href="files/Primary_Build_Files.csv" download>Download EPSG list, all courses</a></p>
@@ -247,7 +257,7 @@ async function kit(){
   $('vi').hidden=pin||gm;$('vc').hidden=pin||gm;$('vh').hidden=true;$('vz').hidden=true;if(c.pin){$('vf').hidden=!pin;$('vp').hidden=!pin}
   if(pin)pinmap(c.pin);else if(v=='holes')holemap(c);else if(!gm)$('vi').src=`img/${v}/${c.s}.jpg`});
  if(c.img)holemap(c);  // the Hole map view opens as the zoomable map
- gwire(c);
+ gwire(c);addEventListener('beforeprint',()=>{$('pgame').innerHTML=gprint(c)});  // print the Game tab as it is now
  // Back returns to the list as it was: browser history when we came from it, otherwise the saved search.
  // Go back (keeping the list's search and scroll) only when the page before was the home page, never the hole editor.
  $('back').onclick=e=>{try{const r=new URL(document.referrer);if(r.origin===location.origin&&/(\/|index\.html|home\.html)$/.test(r.pathname)&&history.length>1){e.preventDefault();history.back()}}catch{}};
