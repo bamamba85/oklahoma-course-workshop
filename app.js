@@ -80,7 +80,8 @@ async function home(){
   $('rsm').textContent=[n?`Restored ${cn(n)}.`:'',m?`2K25 setting changes for ${cn(m)}.`:'',t?`Drawn hole routes for ${cn(t)}.`:''].filter(Boolean).join(' ')||'Nothing in that file matched a course.'}catch{$('rsm').textContent='That file is not a progress backup. Choose the file made by Download my progress.'}}}
 // Leaflet (the map library) loads only when a map is first shown; resolves false if it can't load.
 const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';let LL;
-function leaflet(){if(window.L)return Promise.resolve(true);if(LL)return LL;
+// (named loadLeaflet, not leaflet: Leaflet 1.9 sets window.leaflet to itself, which overwrote the old name and broke the pin map)
+function loadLeaflet(){if(window.L)return Promise.resolve(true);if(LL)return LL;
  const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';l.crossOrigin='';document.head.append(l);
  return LL=new Promise(r=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';s.onload=()=>r(true);s.onerror=()=>r(false);document.head.append(s)})}
 // Shape colors, the same as the hole-map pictures (Build Kit/hole_map_style.py). Water is left out on purpose.
@@ -103,7 +104,7 @@ function shapeKey(g){const k=L.control({position:'bottomleft'});k.onAdd=()=>{con
 // hole-map picture instead in the preview, when the map library can't load, or when the USGS tiles fail.
 let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=true;box.hidden=true;$('vz').hidden=true;$('vi').hidden=false;$('vi').src=`img/holes/${c.s}.jpg`};
  if(hm){box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;hm.invalidateSize();return}
- if(hmFail||window.OKW_PREVIEW||!c.ob||!await leaflet())return pic();
+ if(hmFail||window.OKW_PREVIEW||!c.ob||!await loadLeaflet())return pic();
  box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;
  // one finger on the map moves it (phones and tablets too, owner Nov 8 2026); outside the map the page scrolls
  hm=L.map(box,{dragging:true,scrollWheelZoom:false,maxZoom:19,zoomSnap:.5});hm.createPane('shapes').style.zIndex=350;
@@ -122,7 +123,7 @@ let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=
  // the mouse wheel zooms only after a click on the map, so scrolling the page doesn't get caught by it
  hm.on('click',()=>hm.scrollWheelZoom.enable());hm.on('mouseout',()=>hm.scrollWheelZoom.disable())}
 let pm;async function pinmap(p){if(pm){pm.invalidateSize();return}
- if(!await leaflet()){$('vf').innerHTML='<p class="none">The map could not load. Use the Google Earth link below.</p>';return}
+ if(!await loadLeaflet()){$('vf').innerHTML='<p class="none">The map could not load. Use the Google Earth link below.</p>';return}
  pm=L.map('vf',{dragging:true,scrollWheelZoom:false}).setView(p,15);
  L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:18,attribution:'USGS'}).addTo(pm);
  L.marker(p,{title:'Open in Google Earth',alt:'Open this pin in Google Earth',icon:L.divIcon({className:'pinflag',html:'<svg viewBox="0 0 28 36" width="28" height="36" aria-hidden="true"><path d="M5 2v31" stroke="#fff" stroke-width="3"/><path d="M5 2v31" stroke="#12302A" stroke-width="1.5"/><path d="M6 3l20 7-20 7z" fill="#C9281F" stroke="#fff"/></svg>',iconSize:[28,36],iconAnchor:[5,34]})}).on('click',()=>window.open(document.querySelector('#vp a').href,'_blank','noopener')).addTo(pm)}
