@@ -5,6 +5,10 @@
 const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw-trace',JSON.stringify(v))}catch{}}};
 (async function draw(){
  const slug=new URLSearchParams(location.search).get('c'),st=$('dst');
+ // computer only (owner, Nov 8 2026): on a phone or tablet (no mouse pointer) show a note, load no map or tools
+ if(matchMedia('(hover:none)').matches){const ok=slug&&/^[a-z0-9-]+$/.test(slug);
+  document.body.innerHTML=`<main class="sec" style="padding:24px 16px;max-width:560px"><a class="back" href="${ok?'course.html?c='+slug:'index.html'}">← Back to ${ok?'course':'courses'}</a><h1>Draw hole map</h1><p>The hole editor works on a computer only. Open this page on your PC.</p></main>`;
+  document.body.classList.remove('draw');return}
  if(!slug||!/^[a-z0-9-]+$/.test(slug)){st.textContent='No course chosen. Open this from a course page.';return}
  let c;try{c=await fetch(`data/c/${slug}.json`).then(r=>{if(!r.ok)throw 0;return r.json()})}catch{st.textContent='That course was not found.';return}
  document.title=`Draw ${c.n}`;$('dname').textContent=c.n;$('dback').href=`course.html?c=${slug}`;
