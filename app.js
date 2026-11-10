@@ -218,7 +218,7 @@ async function kit(){
   list=Object.entries(s).filter(([k])=>nm[k]).map(([k,n])=>`${n} ${nm[k][n>1?1:0]}`).join(', '),st=c.shp||'n',nh=c.h||c.mapped||18,
   // clubhouse, driving range and cart paths: listed so he knows they're in OpenStreetMap (not part of the rating;
   // the range is drawn on the map, the others aren't)
-  ext=[s.clubhouse?(s.clubhouse>1?`${s.clubhouse} clubhouses`:'clubhouse'):'',s.driving_range?(s.driving_range>1?`${s.driving_range} driving ranges`:'driving range'):'',s.cartpath_m?`${s.cartpath_m>=1000?(s.cartpath_m/1000).toFixed(1)+' km':s.cartpath_m+' m'} of cart paths`:''].filter(Boolean).join(' · '),xt=ext?` · ${ext}`:'';
+  ext=[s.clubhouse?(s.clubhouse>1?`${s.clubhouse} clubhouses`:'clubhouse'):'',s.driving_range?(s.driving_range>1?`${s.driving_range} driving ranges`:'driving range'):'',s.tee_names&&s.tee_names.length?`tees named ${s.tee_names.join(', ')}`:'',s.cartpath_m?`${s.cartpath_m>=1000?(s.cartpath_m/1000).toFixed(1)+' km':s.cartpath_m+' m'} of cart paths`:''].filter(Boolean).join(' · '),xt=ext?` · ${ext}`:'';
   const miss=st=='p'?[(s.green||0)<nh?`${(s.green||0)?'only '+s.green:'no'} green${s.green==1?'':'s'} for ${nh} holes`:'',!(s.fairway||s.bunker)?'no fairways or bunkers':''].filter(Boolean).join(', '):'';
   return ck(st,'Hole shapes',(st=='y'?list:st=='p'?`Incomplete: ${miss}. Has ${list}`:c.mapped?`No greens, fairways or bunkers mapped yet${s.water?` (only ${list})`:''}`:ext?'No greens, fairways or bunkers mapped':'Not mapped')+xt)};
  const lat=c.la,lon=c.lo,mb=a=>a.reduce((x,i)=>x+i.mb,0),feet=(c.pn||'').includes('ftUS');
