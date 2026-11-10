@@ -2,17 +2,31 @@ const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,m=
 const fmt=n=>n==null?'':Number(n).toLocaleString('en-US');
 const store={get(){try{return JSON.parse(localStorage.getItem('okw')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw',JSON.stringify(v))}catch{}}};
 const DONE=['Built','Done by Others'];
-// Status shown for a course: his own (saved in 'okw': In progress, LIDAR done, Built, Done by Others) or, if he
+// Status shown for a course: his own (saved in 'okw': LIDAR done, In progress, Built, Done by Others, in build
+// order: converted for 2K25, then building, then built and published; owner, Nov 10 2026) or, if he
 // hasn't set one, the automatic map status from the build (No OSM, Partial OSM, Full OSM). Saved values never change.
 const stat=(c,s)=>s[c.s]?.st||c.os||'No OSM',slbl=v=>v==='In progress'?'In Progress':v;
-function progress(total){const s=Object.values(store.get()),n=k=>s.filter(x=>x.st===k).length,b=n('Built'),o=n('Done by Others'),w=n('In progress'),l=n('LIDAR done');
- $('pt').innerHTML=`<b>${b+o} of ${total} done</b>${b||o?` <span class="kb">${b} built</span>`:''}${o?` <span class="ko">${o} by others</span>`:''}${w?` <span>${w} in progress</span>`:''}${l?` <span>${l} LIDAR done</span>`:''}`;$('pb').style.width=(100*b/total)+'%';$('po').style.width=(100*o/total)+'%'}
+// Progress line (top bar): the total done on the left, then every course counted under the status it shows, in build
+// order (owner, Nov 10 2026). L: the course list from data/index.json. Saved values are never renamed.
+// [saved value, label, colour]: each status has its own colour, used for its bullet and its piece of the bar
+const PORDER=[['No OSM','No OSM','#93A39C'],['Partial OSM','Partial OSM','#E0A458'],['Full OSM','Full OSM','#6CC489'],['LIDAR done','LIDAR done','#B39DE8'],
+ ['In progress','in progress','#F07F6C'],['Built','built','#D8BE78'],['Done by Others','by others','#8CC7E8']];
+function progress(L){const total=L.length,sv=store.get(),cnt={};L.forEach(c=>{const k=stat(c,sv);cnt[k]=(cnt[k]||0)+1});const n=k=>cnt[k]||0,b=n('Built'),o=n('Done by Others');
+ // three lines (owner, Nov 10 2026): the total beside the bar, level with the top links; then the automatic map
+ // statuses; then his own build statuses, each in small type with its own coloured bullet
+ const row=(lab,ks)=>{const h=PORDER.filter(([k])=>ks.includes(k)).map(([k,t,c])=>{const x=n(k);return x?`<span style="--c:${c}"><b>${x}</b> ${t}</span>`:''}).join('');
+  return h?`<span class="pl"><i>${lab}</i>${h}</span>`:''};
+ $('pt').innerHTML=`<span class="pd"><b>${b+o} of ${total} done</b></span>`+row('Maps',['No OSM','Partial OSM','Full OSM'])+row('Your builds',['LIDAR done','In progress','Built','Done by Others']);
+ // the bar: one piece per status, as wide as its share of all courses, in the same order and colours
+ const bar=document.querySelector('.prog .bar');
+ if(bar){bar.innerHTML=PORDER.map(([k,t,c])=>n(k)?`<i style="flex:${n(k)} 1 0;background:${c}"></i>`:'').join('');
+  bar.title=PORDER.filter(([k])=>n(k)).map(([k,t])=>`${n(k)} ${t}`).join(' · ')}}
 const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
 const RC={Green:'#2E6B4F',Frontier:'#C8631C','Red Carpet':'#8E2F3C','Great Plains':'#B9842B',Chickasaw:'#3F6F8C',Choctaw:'#5B4E7E'};
 const TK=[['Ready','Ready: scorecard and full hole map'],['Good','Good: scorecard'],['Thin','Thin: needs research']];
 async function home(){
  const [D,M]=await Promise.all([fetch('data/index.json').then(r=>r.json()),fetch('data/map.json').then(r=>r.json())]);
- progress(D.length);
+ progress(D);
  const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true],['Done by Others',c=>store.get()[c.s]?.st==='Done by Others']];
  let tab=0;
  $('tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-i="${i}" aria-selected="${i==0}">${t[0]}<small></small></button>`).join('');
@@ -64,7 +78,7 @@ async function home(){
  $('key').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(view=='reg')fr=fr==k?'':k;else ft=ft==k?'':k;paint();draw()};
  paint();
  const ev=(el,sel)=>{el.addEventListener('mouseover',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,true)});el.addEventListener('mouseout',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,false)});el.addEventListener('focusin',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,true)});el.addEventListener('focusout',e=>{const a=e.target.closest(sel);if(a)mark(a.dataset.s,false)})};
- ev($('rows'),'a');ev(svg,'.pin');svg.addEventListener('mouseleave',clear);$('rows').addEventListener('mouseleave',clear);addEventListener('pageshow',e=>{clear();if(e.persisted){progress(D.length);draw()}});addEventListener('scroll',()=>{if(cur&&document.activeElement?.dataset?.s===cur)return;clear()},{passive:true,capture:true});draw();
+ ev($('rows'),'a');ev(svg,'.pin');svg.addEventListener('mouseleave',clear);$('rows').addEventListener('mouseleave',clear);addEventListener('pageshow',e=>{clear();if(e.persisted){progress(D);draw()}});addEventListener('scroll',()=>{if(cur&&document.activeElement?.dataset?.s===cur)return;clear()},{passive:true,capture:true});draw();
  if(saved?.y)requestAnimationFrame(()=>scrollTo(0,saved.y));
  if(matchMedia('(hover:none)').matches)svg.addEventListener('click',e=>{e.preventDefault();const m=svg.getScreenCTM();let b=null,bd=28;D.forEach(c=>{if(!pins[c.s]||pins[c.s].classList.contains('off'))return;const d=Math.hypot(m.a*c.mx+m.e-e.clientX,m.d*c.my+m.f-e.clientY);if(d<bd){bd=d;b=c}});clear();$('pick').hidden=!b;if(b){mark(b.s,true);$('pick').innerHTML=`<a class="btn go" href="course.html?c=${b.s}">Open ${esc(b.n)}</a>`}});
  // The backup also carries 2K25 setting changes under "_2k25" and hand-drawn hole routes (draw.js) under "_trace" (never slugs), and the CSV button exports the 2K25 changes for the Details 25 sheet.
@@ -76,7 +90,7 @@ async function home(){
  $('rs').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const v=JSON.parse(await f.text());if(typeof v!='object'||Array.isArray(v)||!v)throw 0;const ok=Object.fromEntries(Object.entries(v).filter(([k])=>known(k)));store.set({...store.get(),...ok});
   const g=v._2k25&&typeof v._2k25=='object'?Object.fromEntries(Object.entries(v._2k25).filter(([k,x])=>known(k)&&x&&typeof x=='object')):{};if(Object.keys(g).length)gstore.set({...gstore.get(),...g});
   const tr=v._trace&&typeof v._trace=='object'?Object.fromEntries(Object.entries(v._trace).filter(([k,x])=>known(k)&&x&&typeof x.h=='object')):{};if(Object.keys(tr).length)try{localStorage.setItem('okw-trace',JSON.stringify({...tget(),...tr}))}catch{}
-  progress(D.length);draw();gk();const n=Object.keys(ok).length,m=Object.keys(g).length,t=Object.keys(tr).length;const cn=x=>`${x} ${x==1?'course':'courses'}`;
+  progress(D);draw();gk();const n=Object.keys(ok).length,m=Object.keys(g).length,t=Object.keys(tr).length;const cn=x=>`${x} ${x==1?'course':'courses'}`;
   $('rsm').textContent=[n?`Restored ${cn(n)}.`:'',m?`2K25 setting changes for ${cn(m)}.`:'',t?`Drawn hole routes for ${cn(t)}.`:''].filter(Boolean).join(' ')||'Nothing in that file matched a course.'}catch{$('rsm').textContent='That file is not a progress backup. Choose the file made by Download my progress.'}}}
 // Leaflet (the map library) loads only when a map is first shown; resolves false if it can't load.
 const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';let LL;
@@ -209,7 +223,7 @@ async function kit(){
  const slug=new URLSearchParams(location.search).get('c'),K=$('kit');
  if(!slug||!/^[a-z0-9-]+$/.test(slug)){K.innerHTML='<p>Choose a course from the <a href="index.html">course list</a>.</p>';return}
  let c;try{c=await fetch(`data/c/${slug}.json`).then(r=>{if(!r.ok)throw 0;return r.json()})}catch{K.innerHTML='<p>That course was not found. Go back to the <a href="index.html">course list</a>.</p>';return}
- fetch('data/index.json').then(r=>r.json()).then(d=>progress(d.length));
+ fetch('data/index.json').then(r=>r.json()).then(d=>progress(d));
  document.title=c.n+' Build Kit';const s=store.get(),me=s[c.s]||{};
  const ck=(st,t,sub)=>`<li><i class="${st}">${st=='y'?'✓':st=='p'?'~':'✕'}</i><span>${t}${sub?`<small>${sub}</small>`:''}</span></li>`;
  // Hole shapes: what OpenStreetMap really has (c.sh counts; c.shp is the build's strict rating: ✓ a green for
@@ -240,7 +254,7 @@ async function kit(){
  ${shapes(c)}
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
- <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option value="In progress">In Progress</option><option>LIDAR done</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
+ <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option>LIDAR done</option><option value="In progress">In Progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
  <section class="printonly pgame" id="pgame">${gprint(c)}</section><section class="printonly pnotes"><h2>Notes:</h2><div class="pnl"></div></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>
@@ -264,5 +278,5 @@ async function kit(){
  $('back').onclick=e=>{try{const r=new URL(document.referrer);if(r.origin===location.origin&&/(\/|index\.html|home\.html)$/.test(r.pathname)&&history.length>1){e.preventDefault();history.back()}}catch{}};
  if(PC&&c.ob)$('osmck').onclick=()=>osmCheck(c);
  $('bs').value=me.st||'';$('bn').value=me.note||'';
- const save=()=>{const v=store.get();v[c.s]={st:$('bs').value,note:$('bn').value};if(!v[c.s].st&&!v[c.s].note)delete v[c.s];store.set(v);fetch('data/index.json').then(r=>r.json()).then(d=>progress(d.length))};
+ const save=()=>{const v=store.get();v[c.s]={st:$('bs').value,note:$('bn').value};if(!v[c.s].st&&!v[c.s].note)delete v[c.s];store.set(v);fetch('data/index.json').then(r=>r.json()).then(d=>progress(d))};
  $('bs').oninput=save;$('bn').oninput=save}
