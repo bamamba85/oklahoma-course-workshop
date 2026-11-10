@@ -16,18 +16,19 @@ function progress(L){const total=L.length,sv=store.get(),cnt={};L.forEach(c=>{co
  // statuses; then his own build statuses, each in small type with its own coloured bullet
  const row=(lab,ks)=>{const h=PORDER.filter(([k])=>ks.includes(k)).map(([k,t,c])=>{const x=n(k);return x?`<span style="--c:${c}"><b>${x}</b> ${t}</span>`:''}).join('');
   return h?`<span class="pl"><i>${lab}</i>${h}</span>`:''};
- $('pt').innerHTML=`<span class="pd"><b>${b+o} of ${total} done</b></span>`+row('Maps',['No OSM','Partial OSM','Full OSM'])+row('Your builds',['LIDAR done','In progress','Built','Done by Others']);
+ // (no "X of N done" text: the bar and the counts under it say it; owner, Nov 10 2026)
+ $('pt').innerHTML=row('Maps',['No OSM','Partial OSM','Full OSM'])+row('Your builds',['LIDAR done','In progress','Built','Done by Others']);
  // the bar: one piece per status, as wide as its share of all courses, in the same order and colours
  const bar=document.querySelector('.prog .bar');
  if(bar){bar.innerHTML=PORDER.map(([k,t,c])=>n(k)?`<i style="flex:${n(k)} 1 0;background:${c}"></i>`:'').join('');
-  bar.title=PORDER.filter(([k])=>n(k)).map(([k,t])=>`${n(k)} ${t}`).join(' · ')}}
+  bar.title=`${b+o} of ${total} done: `+PORDER.filter(([k])=>n(k)).map(([k,t])=>`${n(k)} ${t}`).join(' · ')}}
 const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
 const RC={Green:'#2E6B4F',Frontier:'#C8631C','Red Carpet':'#8E2F3C','Great Plains':'#B9842B',Chickasaw:'#3F6F8C',Choctaw:'#5B4E7E'};
 const TK=[['Ready','Ready: scorecard and full hole map'],['Good','Good: scorecard'],['Thin','Thin: needs research']];
 async function home(){
  const [D,M]=await Promise.all([fetch('data/index.json').then(r=>r.json()),fetch('data/map.json').then(r=>r.json())]);
  progress(D);
- const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true],['Done by Others',c=>store.get()[c.s]?.st==='Done by Others']];
+ const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true]];  // Done by Others is in the status menu now, not a tab (owner, Nov 10 2026)
  let tab=0;
  $('tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-i="${i}" aria-selected="${i==0}">${t[0]}<small></small></button>`).join('');
  let view='tier',ft='',fr='';
@@ -54,7 +55,7 @@ async function home(){
   if(dx||dy)tip.setAttribute('transform',`translate(${dx} ${dy})`)}
  const rank={Ready:0,Good:1,Thin:2};
  function draw(){const q=$('q').value.toLowerCase().trim(),s=store.get();
-  [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=T[i][0]==='Done by Others'?`${L.length} ${L.length==1?'course':'courses'}`:`${L.filter(c=>DONE.includes(s[c.s]?.st)).length} of ${L.length} done`});
+  [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=`${L.filter(c=>DONE.includes(s[c.s]?.st)).length} of ${L.length} done`});
   let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||stat(c,s)==$('mst').value));
   const o=$('sort').value;R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||a.n.localeCompare(b.n):o=='t'?(a,b)=>rank[a.tier]-rank[b.tier]||a.n.localeCompare(b.n):o=='y'?(a,b)=>(b.y||0)-(a.y||0):(a,b)=>a.n.localeCompare(b.n));
   $('ct').textContent=R.length+(R.length==1?' course':' courses')+(q?', searching all tabs':'');
@@ -64,7 +65,8 @@ async function home(){
  const SK='okw-list';let saved=null;
  function save(){try{sessionStorage.setItem(SK,JSON.stringify({tab,q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
  try{saved=JSON.parse(sessionStorage.getItem(SK)||'null')}catch{}
- if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
+ if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';
+  if((saved.tab|0)==4){tab=3;$('mst').value='Done by Others'}  // the old Done by Others tab: Everything, filtered to Done by Othersview=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
