@@ -141,3 +141,7 @@ footer{padding:20px 24px;color:var(--soft);font-size:14px;border-top:1px solid v
 /* writing lines every 0.28 inch (notebook spacing), filling the box; only whole lines are drawn */
 .pnl{flex:1 1 auto;min-height:.28in;-webkit-print-color-adjust:exact;print-color-adjust:exact;
  background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(.28in - 1px),#a5a5a5 calc(.28in - 1px),#a5a5a5 .28in)}
+
+/* map key on phones: just Ready / Good / Thin and the counts, no descriptions (owner, Nov 10 2026) */
+@media(max-width:600px){#key .kd{display:none}}
+@media(max-width:560px){#key.tk{grid-template-columns:repeat(3,auto);justify-content:start;gap:2px 10px}}

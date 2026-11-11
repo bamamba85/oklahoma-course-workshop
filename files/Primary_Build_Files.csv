@@ -7,7 +7,7 @@ Bailey Ranch Golf Club,Owasso,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM
 Battle Creek Golf Club,Broken Arrow,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,21,532,Game Data/LIDAR Link Lists/battle-creek-golf-club.txt,Game Data/GeoJSON Hole Geometry/battle-creek-golf-club.geojson,Full
 Beaver Pioneer Park Golf Course,Beaver,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,187,Game Data/LIDAR Link Lists/beaver-pioneer-park-golf-course.txt,,Full
 Belmar Golf Club,Norman,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,2,60,Game Data/LIDAR Link Lists/belmar-golf-club.txt,Game Data/GeoJSON Hole Geometry/belmar-golf-club.geojson,Full
-Bermuda Creek Golf Club,Hugo,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,411,Game Data/LIDAR Link Lists/bermuda-creek-golf-club.txt,,Full
+Bermuda Creek Golf Club,Hugo,Active,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,411,Game Data/LIDAR Link Lists/bermuda-creek-golf-club.txt,Game Data/GeoJSON Hole Geometry/bermuda-creek-golf-club.geojson,Full
 Blackmer Municipal Golf Course,Hooker,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,1,36,Game Data/LIDAR Link Lists/blackmer-municipal-golf-course.txt,,Full
 Blackwell Municipal Golf Course,Blackwell,Active,9,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,2,146,Game Data/LIDAR Link Lists/blackwell-municipal-golf-course.txt,,Full
 Boiling Springs Golf Course,Woodward,Active,18,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,234,Game Data/LIDAR Link Lists/boiling-springs-golf-course.txt,Game Data/GeoJSON Hole Geometry/boiling-springs-golf-course.geojson,Full
@@ -19,7 +19,7 @@ Broadmoore Golf Course,Moore,Inactive,18,Point cloud (LAZ),6343,NAD83(2011) / UT
 Broken Arrow Golf Club,Broken Arrow,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,12,347,Game Data/LIDAR Link Lists/broken-arrow-golf-club.txt,Game Data/GeoJSON Hole Geometry/broken-arrow-golf-club.geojson,Full
 Brookside Golf Course,Oklahoma City,Inactive,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,4,158,Game Data/LIDAR Link Lists/brookside-golf-course.txt,,Full
 Buffalo Rock Golf Venue,Cushing,Active,18,Point cloud (LAZ),6553,NAD83(2011) / Oklahoma North (ftUS),US survey feet,6,421,Game Data/LIDAR Link Lists/buffalo-rock-golf-venue.txt,Game Data/GeoJSON Hole Geometry/buffalo-rock-golf-venue.geojson,Full
-Buncombe Creek Golf Course,Kingston,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,475,Game Data/LIDAR Link Lists/buncombe-creek-golf-course.txt,,Full
+Buncombe Creek Golf Course,Kingston,Active,9,Point cloud (LAZ),6343,NAD83(2011) / UTM zone 14N,Meters,6,475,Game Data/LIDAR Link Lists/buncombe-creek-golf-course.txt,Game Data/GeoJSON Hole Geometry/buncombe-creek-golf-course.geojson,Full
 Castle Rock Lakes & Golf,Sulphur,Inactive,9,Point cloud (LAZ),6555,NAD83(2011) / Oklahoma South (ftUS),US survey feet,4,473,Game Data/LIDAR Link Lists/castle-rock-lakes-golf.txt,,None
 Cedar Creek Golf Course,Broken Bow,Active,18,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,4,230,Game Data/LIDAR Link Lists/cedar-creek-golf-course.txt,Game Data/GeoJSON Hole Geometry/cedar-creek-golf-course.geojson,Full
 Cedar Crest Golf Course,Skiatook,Inactive,9,Point cloud (LAZ),6344,NAD83(2011) / UTM zone 15N,Meters,2,69,Game Data/LIDAR Link Lists/cedar-crest-golf-course.txt,Game Data/GeoJSON Hole Geometry/cedar-crest-golf-course.geojson,Pars only

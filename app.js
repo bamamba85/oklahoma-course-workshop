@@ -24,11 +24,13 @@ function progress(L){const total=L.length,sv=store.get(),cnt={};L.forEach(c=>{co
   bar.title=`${b+o} of ${total} done: `+PORDER.filter(([k])=>n(k)).map(([k,t])=>`${n(k)} ${t}`).join(' · ')}}
 const TC={Ready:'#2F7A4B',Good:'#B8922F',Thin:'#8FA096'};
 const RC={Green:'#2E6B4F',Frontier:'#C8631C','Red Carpet':'#8E2F3C','Great Plains':'#B9842B',Chickasaw:'#3F6F8C',Choctaw:'#5B4E7E'};
-const TK=[['Ready','Ready: scorecard and full hole map'],['Good','Good: scorecard'],['Thin','Thin: needs research']];
+// [name, description]: on phones only the name shows (owner, Nov 10 2026)
+const TK=[['Ready','scorecard and full hole map'],['Good','scorecard'],['Thin','needs research']];
 async function home(){
  const [D,M]=await Promise.all([fetch('data/index.json').then(r=>r.json()),fetch('data/map.json').then(r=>r.json())]);
  progress(D);
- const T=[['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive'],['Everything',c=>true]];  // Done by Others is in the status menu now, not a tab (owner, Nov 10 2026)
+ // Everything first and the default (owner, Nov 10 2026); Done by Others is in the status menu, not a tab
+ const T=[['Everything',c=>true],['18 holes',c=>c.h==18&&c.st!=='Inactive'],['9 holes',c=>c.h==9&&c.st!=='Inactive'],['Lost courses',c=>c.st==='Inactive']];
  let tab=0;
  $('tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-i="${i}" aria-selected="${i==0}">${t[0]}<small></small></button>`).join('');
  let view='tier',ft='',fr='';
@@ -63,10 +65,11 @@ async function home(){
   const show=new Set(R.map(c=>c.s));for(const k in pins)pins[k].classList.toggle('off',!show.has(k));save()}
  // The search, tab, sort, filters and scroll position stay for this browser tab, so coming back to the list keeps them.
  const SK='okw-list';let saved=null;
- function save(){try{sessionStorage.setItem(SK,JSON.stringify({tab,q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
+ function save(){try{sessionStorage.setItem(SK,JSON.stringify({tabn:T[tab][0],q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
  try{saved=JSON.parse(sessionStorage.getItem(SK)||'null')}catch{}
- if(saved){tab=Math.min(saved.tab|0,T.length-1);$('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';
-  if((saved.tab|0)==4){tab=3;$('mst').value='Done by Others'}  // the old Done by Others tab: Everything, filtered to Done by Othersview=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
+ if(saved){tab=Math.max(0,T.findIndex(t=>t[0]===saved.tabn));  // the tab is kept by name; anything else opens on Everything
+  $('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';
+  view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
@@ -75,7 +78,8 @@ async function home(){
   svg.querySelectorAll('.co').forEach(p=>p.style.fill=rg&&RC[p.dataset.r]?RC[p.dataset.r]:'');
   svg.querySelectorAll('.pin').forEach(a=>{const c=D.find(x=>x.s==a.dataset.s);a.firstChild.setAttribute('fill',rg?RC[c.r]||'#8FA096':TC[c.tier])});
   const items=rg?Object.keys(RC).map(r=>[r,r+' Country',RC[r],D.filter(c=>c.r==r).length]):TK.map(t=>[t[0],t[1],TC[t[0]],D.filter(c=>c.tier==t[0]).length]),sel=rg?fr:ft;
-  $('key').innerHTML=items.map(i=>`<button type="button" data-k="${esc(i[0])}" aria-pressed="${sel==i[0]}" style="--c:${i[2]}">${esc(i[1])} <small>${i[3]}</small></button>`).join('')}
+  $('key').classList.toggle('tk',!rg);  // Ready/Good/Thin: one row of three on phones
+  $('key').innerHTML=items.map(i=>`<button type="button" data-k="${esc(i[0])}" aria-pressed="${sel==i[0]}" style="--c:${i[2]}">${rg?esc(i[1]):`<span>${esc(i[0])}<span class="kd">: ${esc(i[1])}</span></span>`} <small>${i[3]}</small></button>`).join('')}
  $('views').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v==view)return;view=b.dataset.v;ft=fr='';[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x==b));paint();draw()};
  $('key').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(view=='reg')fr=fr==k?'':k;else ft=ft==k?'':k;paint();draw()};
  paint();
