@@ -79,7 +79,7 @@ async function home(){
   svg.querySelectorAll('.pin').forEach(a=>{const c=D.find(x=>x.s==a.dataset.s);a.firstChild.setAttribute('fill',rg?RC[c.r]||'#8FA096':TC[c.tier])});
   const items=rg?Object.keys(RC).map(r=>[r,r+' Country',RC[r],D.filter(c=>c.r==r).length]):TK.map(t=>[t[0],t[1],TC[t[0]],D.filter(c=>c.tier==t[0]).length]),sel=rg?fr:ft;
   $('key').classList.toggle('tk',!rg);  // Ready/Good/Thin: one row of three on phones
-  $('key').innerHTML=items.map(i=>`<button type="button" data-k="${esc(i[0])}" aria-pressed="${sel==i[0]}" style="--c:${i[2]}">${rg?esc(i[1]):`<span>${esc(i[0])}<span class="kd">: ${esc(i[1])}</span></span>`} <small>${i[3]}</small></button>`).join('')}
+  $('key').innerHTML=items.map(i=>`<button type="button" data-k="${esc(i[0])}" aria-pressed="${sel==i[0]}" style="--c:${i[2]}">${rg?`<span>${esc(i[0])}<span class="kc"> Country</span></span>`:`<span>${esc(i[0])}<span class="kd">: ${esc(i[1])}</span></span>`} <small>${i[3]}</small></button>`).join('')}
  $('views').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v==view)return;view=b.dataset.v;ft=fr='';[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x==b));paint();draw()};
  $('key').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(view=='reg')fr=fr==k?'':k;else ft=ft==k?'':k;paint();draw()};
  paint();

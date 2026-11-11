@@ -145,3 +145,19 @@ footer{padding:20px 24px;color:var(--soft);font-size:14px;border-top:1px solid v
 /* map key on phones: just Ready / Good / Thin and the counts, no descriptions (owner, Nov 10 2026) */
 @media(max-width:600px){#key .kd{display:none}}
 @media(max-width:560px){#key.tk{grid-template-columns:repeat(3,auto);justify-content:start;gap:2px 10px}}
+/* map keys as bordered cards on every screen (owner, Nov 10 2026); phones drop "Country" and the Ready/Good/Thin
+   descriptions so each card fits on one line */
+#key{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#key button{border:1px solid var(--line);background:var(--panel);border-radius:8px;min-height:42px;padding:8px 12px;gap:8px;justify-content:flex-start;white-space:nowrap;overflow:hidden}
+#key button small{font-size:12px}
+#key button[aria-pressed=true]{border-color:var(--ink);background:color-mix(in srgb,var(--c) 16%,var(--panel));box-shadow:inset 0 0 0 1px var(--ink)}
+@media(hover:hover) and (pointer:fine){#key button:not([aria-pressed=true]):hover{border-color:#9FB1A5;color:var(--ink)}}
+#key.tk{grid-template-columns:auto auto auto}  /* Ready/Good/Thin: widths follow their descriptions */
+@media(max-width:900px){#key:not(.tk){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){
+ #key{gap:6px}
+ #key button{padding:8px 10px;gap:7px}
+ #key .kc{display:none}
+ #key.tk{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #key.tk button{justify-content:center;padding:8px 6px}
+}
