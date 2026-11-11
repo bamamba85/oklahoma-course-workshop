@@ -127,7 +127,8 @@ let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=
  if(hmFail||window.OKW_PREVIEW||!c.ob||!await loadLeaflet())return pic();
  box.hidden=false;$('vz').hidden=false;$('vi').hidden=true;
  // one finger on the map moves it (phones and tablets too, owner Nov 8 2026); outside the map the page scrolls
- hm=L.map(box,{dragging:true,scrollWheelZoom:false,maxZoom:19,zoomSnap:.5});hm.createPane('shapes').style.zIndex=350;
+ // whole zoom steps only (Nov 11 2026): resting between steps scales the photo tiles and leaves thin grid lines
+ hm=L.map(box,{dragging:true,scrollWheelZoom:false,maxZoom:19,zoomSnap:1});hm.createPane('shapes').style.zIndex=350;
  const t=imagery(hm,19);let got=0,bad=0;
  t.on('tileload',()=>got++);t.on('tileerror',()=>{if(++bad>=4&&!got&&hm){hm.remove();hm=null;pic()}});
  const frame=L.latLngBounds([[c.ob[0],c.ob[1]],[c.ob[2],c.ob[3]]]);hm.fitBounds(frame);
