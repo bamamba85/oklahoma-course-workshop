@@ -147,11 +147,23 @@ let pm;async function pinmap(p){if(pm){pm.invalidateSize();return}
  pm=L.map('vf',{dragging:true,scrollWheelZoom:false}).setView(p,15);
  L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:18,attribution:'USGS'}).addTo(pm);
  L.marker(p,{title:'Open in Google Earth',alt:'Open this pin in Google Earth',icon:L.divIcon({className:'pinflag',html:'<svg viewBox="0 0 28 36" width="28" height="36" aria-hidden="true"><path d="M5 2v31" stroke="#fff" stroke-width="3"/><path d="M5 2v31" stroke="#12302A" stroke-width="1.5"/><path d="M6 3l20 7-20 7z" fill="#C9281F" stroke="#fff"/></svg>',iconSize:[28,36],iconAnchor:[5,34]})}).on('click',()=>window.open(document.querySelector('#vp a').href,'_blank','noopener')).addTo(pm)}
+// Tee colour bullets (owner, Nov 11 2026). cs: one or two colour names from the build (tc / teelist tc); a two-colour
+// tee (White/Blue) gets a half-and-half bullet. A tee with a colour shows the bullet alone, no name (owner: the yardages
+// tell the tees apart); the name stays in the tooltip and for screen readers. A tee with no known colour shows its name.
+// The bullet is a small golf tee (owner), split down the middle for two colours. Both tee tables list the forward tees
+// first, longest last, like the 2K25 scorecard (owner); the data keeps longest first (draw.js reads tee 0 as the longest).
+let TGID=0;
+const TCOL={black:'#1b1b1b',blue:'#1f5fbf',white:'#ffffff',red:'#d42a20',gold:'#e0a91f',yellow:'#f2d33a',green:'#2f8a3c',silver:'#b8bec4',maroon:'#7a1f2b',orange:'#ef7d1a',gray:'#8a8f94',copper:'#b8733a',bronze:'#9c6b30',purple:'#6d3fa0'};
+function tlab(cs,name){cs=(cs||[]).filter(x=>TCOL[x]);name=String(name??'');if(!cs.length)return esc(name);const w=cs.join('/'),said=cs.every(x=>new RegExp(`\\b${x}\\b`,'i').test(name)),t=said?name:`${name} (${w})`;
+ const g=`tg${++TGID}`,a=TCOL[cs[0]],b=TCOL[cs[1]||cs[0]];
+ return `<svg class="tdot" viewBox="0 0 14 22" aria-hidden="true"><title>${esc(t)}</title><defs><linearGradient id="${g}"><stop offset=".5" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/></linearGradient></defs><path d="M1 1.5H13Q13 5.2 8.7 6.4L8.4 17.6L7 21L5.6 17.6L5.3 6.4Q1 5.2 1 1.5Z" fill="url(#${g})"/></svg><span class="vh">${esc(t)}</span>`}
 function scorecard(c){if(!c.holes.length)return `<p>No hole-by-hole card has been found for this course. ${c.card==='Totals only'?'Course totals are listed under tees.':'A phone call or a photo of the paper card would fill this in.'}</p>`;
  const H=c.holes,nine=H.length<=9,part=(a,b,f)=>H.slice(a,b).reduce((s,h)=>s+(f(h)||0),0);
  const cols=[...H.slice(0,9).map(h=>({h})),...(nine?[]:[{t:'Out',a:0,b:9}]),...H.slice(9).map(h=>({h})),...(nine?[{t:'Total',a:0,b:H.length}]:[{t:'In',a:9,b:18},{t:'Total',a:0,b:18}])];
- const row=(l,f,sum)=>`<tr><td>${esc(l)}</td>${cols.map(x=>x.h?`<td>${f(x.h)??''}</td>`:`<td class="tot">${sum?part(x.a,x.b,f)||'':''}</td>`).join('')}</tr>`;
- return `<div class="sw"><table><thead><tr><th scope="col">Hole</th>${cols.map(x=>`<th scope="col">${x.h?x.h[0]:x.t}</th>`).join('')}</tr></thead><tbody>${c.tees.map((t,i)=>row(t,h=>h[3][i],1)).join('')}${row('Par',h=>h[1],1)}${row('Handicap',h=>h[2])}</tbody></table></div>`}
+ const row=(l,f,sum,lab)=>`<tr><td>${lab??esc(l)}</td>${cols.map(x=>x.h?`<td>${f(x.h)??''}</td>`:`<td class="tot">${sum?part(x.a,x.b,f)||'':''}</td>`).join('')}</tr>`;
+ // nn: the names of the two nines of an 18 made from two named nines (e.g. Heritage/Legends), shown above each nine's columns
+ const nn=H.length==18&&Array.isArray(c.nn)&&c.nn.length==2?`<tr class="nines"><td></td>${c.nn.map(n=>`<th scope="colgroup" colspan="10">${esc(n)}</th>`).join('')}<td></td></tr>`:'';
+ return `<div class="sw"><table><thead>${nn}<tr><th scope="col">Hole</th>${cols.map(x=>`<th scope="col">${x.h?x.h[0]:x.t}</th>`).join('')}</tr></thead><tbody>${c.tees.map((t,i)=>[t,i]).reverse().map(([t,i])=>row(t,h=>h[3][i],1,tlab(c.tc&&c.tc[i],t))).join('')}${row('Par',h=>h[1],1)}${row('Handicap',h=>h[2])}</tbody></table></div>`}
 // The Game tab: the owner's PGA Tour 2K25 designer settings, from his workbook (import_game_settings.py).
 // Panels follow the game's own menus and labels, scorecard-style: Fairway, Green, Rough on the left; Bunker, Environment on the right.
 // Every value can be edited; edits stay in this browser (localStorage 'okw-game', never 'okw') and download as a CSV row
@@ -269,10 +281,11 @@ async function kit(){
  <details open><summary>Point cloud tiles (LAZ): ${c.lidar.length} ${c.lidar.length==1?'file':'files'}</summary>${ft(c.lidar)}</details>
  <details><summary>Using LIDAR in 2K25</summary><p>The <a href="https://github.com/malifica/TGC-Designer-Tools/releases" rel="noopener">2K25 version of TGC Designer Tools</a> (Beta 3.1 or later) reads the coordinate system from each file and scales feet to meters itself, for both position and height. It works from local LAZ files and a local OpenStreetMap file, and exports a .course file. This workflow hasn't been tested here, so try one course before relying on it.</p><ul class="lk"><li><a href="https://tgctours.proboards.com/board/97/tgc-golf-tools-lidar-osm" rel="noopener">TGC Golf Tools, LIDAR and OSM forum</a></li><li><a href="https://tgctours.proboards.com/thread/36147/lidar-courses-2k25-resolution-bunkers" rel="noopener">LIDAR courses in 2K25 thread</a></li></ul></details>
  ${c.dem.length?`<details><summary>Backup only: 1-meter elevation model, ${c.dem.length} ${c.dem.length==1?'file':'files'}</summary><p>You don't need these for a normal build. Use them only if the point cloud won't load, and never combine them with it, because they use a different coordinate system.</p>${ft(c.dem)}</details>`:''}</section>`:''}
- <section class="sec"><h2>Scorecard</h2>${c.cnote?`<p class="warn">${esc(c.cnote)}</p>`:''}${c.pnote?`<p class="warn">${esc(c.pnote)}</p>`:''}${scorecard(c)}
- ${c.teelist.length?`<details open><summary>Tees, ratings and slopes</summary><div class="sw"><table><thead><tr><th>Tee</th><th>Gender</th><th>Par</th><th>Yards</th><th>Rating</th><th>Slope</th></tr></thead><tbody>${c.teelist.map(t=>`<tr><td>${esc(t.tee_name)}</td><td>${esc(t.gender)}</td><td>${t.par??''}</td><td>${fmt(t.yardage)}</td><td>${t.course_rating??''}</td><td>${t.slope??''}</td></tr>`).join('')}</tbody></table></div></details>`:''}</section>
+ <section class="sec"><h2>Scorecard</h2>${scorecard(c)}
+ ${c.teelist.length?`<details open><summary>Tees, ratings and slopes</summary><div class="sw"><table><thead><tr><th>Tee</th><th>Gender</th><th>Par</th><th>Yards</th><th>Rating</th><th>Slope</th></tr></thead><tbody>${[...c.teelist].sort((a,b)=>(a.yardage??1e9)-(b.yardage??1e9)).map(t=>`<tr><td>${tlab(t.tc,t.tee_name)}</td><td>${esc(t.gender)}</td><td>${t.par??''}</td><td>${fmt(t.yardage)}</td><td>${t.course_rating??''}</td><td>${t.slope??''}</td></tr>`).join('')}</tbody></table></div></details>`:''}</section>
  <section class="sec two"><div><h2>Course facts</h2><dl class="facts">${facts.map(f=>`<dt>${f[0]}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl></div><div><h2>Reference links</h2><ul class="lk">${links.map(l=>`<li><a href="${esc(l[1])}" target="_blank" rel="noopener">${esc(l[0])}</a><small>${esc(l[2])}</small></li>`).join('')}</ul></div></section>
- ${c.note&&c.st!='Active'?`<section class="sec"><h2>Data note</h2><p>${esc(c.note)}</p></section>`:''}`;
+ ${c.note&&c.st!='Active'?`<section class="sec"><h2>Data note</h2><p>${esc(c.note)}</p></section>`:''}
+ ${c.cnote||c.pnote?`<section class="sec cnotes"><h2>Scorecard notes</h2>${[c.cnote,c.pnote].filter(Boolean).map(t=>`<p>${esc(t)}</p>`).join('')}</section>`:''}`;
  document.querySelectorAll('.vt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.vt button').forEach(x=>x.setAttribute('aria-pressed',x==b));const v=b.dataset.v,pin=v=='pin',gm=v=='game';
   $('vg').hidden=!gm;if($('vn'))$('vn').hidden=gm;if(!c.img)return;
   $('vi').hidden=pin||gm;$('vc').hidden=pin||gm;$('vh').hidden=true;$('vz').hidden=true;if(c.pin){$('vf').hidden=!pin;$('vp').hidden=!pin}
