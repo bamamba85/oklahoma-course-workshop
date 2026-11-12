@@ -132,15 +132,19 @@ let hm,hmFail=false;async function holemap(c){const box=$('vh'),pic=()=>{hmFail=
  const t=imagery(hm,19);let got=0,bad=0;
  t.on('tileload',()=>got++);t.on('tileerror',()=>{if(++bad>=4&&!got&&hm){hm.remove();hm=null;pic()}});
  const frame=L.latLngBounds([[c.ob[0],c.ob[1]],[c.ob[2],c.ob[3]]]);hm.fitBounds(frame);
- let g=null;if(c.gj)try{g=await fetch(`files/geojson/${c.s}.geojson`).then(r=>r.json())}catch{}
- if(!hm)return;const shp=g?shapeLayer(g,'shapes'):null,has=shp&&shp.getLayers().length,holes=L.layerGroup().addTo(hm);if(has)shp.addTo(hm);
+ let g=null,a=null;if(c.gj)try{g=await fetch(`files/geojson/${c.s}.geojson`).then(r=>r.json())}catch{}
+ // every other OpenStreetMap golf shape around the course (other courses next door, practice greens ...), same colours,
+ // under the course's own shapes (owner, Nov 12 2026; Build Kit/around_shapes.py). Not counted anywhere.
+ if(c.ag)try{a=await fetch(`files/around/${c.s}.geojson`).then(r=>r.json())}catch{}
+ if(!hm)return;const shp=L.layerGroup();for(const x of [a,g])if(x)shapeLayer(x,'shapes').addTo(shp);
+ const all={features:[...(a?.features||[]),...(g?.features||[])]},has=shp.getLayers().some(l=>l.getLayers().length),holes=L.layerGroup().addTo(hm);if(has)shp.addTo(hm);
  for(const f of g?.features||[]){if(f.properties.kind!='hole'||f.geometry.type!='LineString')continue;const p=f.geometry.coordinates.map(q=>[q[1],q[0]]);
   L.polyline(p,{color:'#000',opacity:.55,weight:6,interactive:false}).addTo(holes);L.polyline(p,{color:'#fff',weight:3,interactive:false}).addTo(holes);
   const n=String(f.properties.ref??'').split(';')[0].match(/(\d+)\s*$/)?.[1];if(n)L.marker(p[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<div class="htee">${n}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).addTo(holes)}
  const ctl=L.control({position:'topright'});ctl.onAdd=()=>{const d=L.DomUtil.create('div','hmctl');d.innerHTML='<button type="button" data-a="fit">Fit course</button>'+(has?'<button type="button" data-a="shp" aria-pressed="true">Shapes on</button>':'');
   L.DomEvent.disableClickPropagation(d);d.onclick=e=>{const a=e.target.dataset.a;if(a=='fit')hm.fitBounds(frame);
    if(a=='shp'){const on=hm.hasLayer(shp);on?hm.removeLayer(shp):shp.addTo(hm);e.target.setAttribute('aria-pressed',!on);e.target.textContent=on?'Shapes off':'Shapes on'}};return d};ctl.addTo(hm);
- if(has)shapeKey(g).addTo(hm);
+ if(has)shapeKey(all).addTo(hm);
  // the mouse wheel zooms only after a click on the map, so scrolling the page doesn't get caught by it
  hm.on('click',()=>hm.scrollWheelZoom.enable());hm.on('mouseout',()=>hm.scrollWheelZoom.disable())}
 let pm;async function pinmap(p){if(pm){pm.invalidateSize();return}
