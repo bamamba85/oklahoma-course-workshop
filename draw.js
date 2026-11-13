@@ -1,7 +1,8 @@
 // Hole editor (draw.html?c=<slug>): the owner marks tees, bends and greens on the USGS satellite map
 // for a course with no hole map. Routes save in this browser (localStorage 'okw-trace', never 'okw')
-// and Copy for Claude puts them on the clipboard as GeoJSON; he pastes it into the chat with /holes,
-// and Build Kit/import_traced.py turns it into a traced hole map.
+// and Export to OSM saves them as a JOSM file. He uploads it to OpenStreetMap himself, then tells Claude
+// "update <course name>" and Claude pulls the map from OpenStreetMap (owner, Nov 13 2026; Copy for Claude
+// and /holes were retired then).
 const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw-trace',JSON.stringify(v))}catch{}}};
 (async function draw(){
  const slug=new URLSearchParams(location.search).get('c'),st=$('dst');
@@ -40,7 +41,7 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   card.forEach(h=>{const p=R[h.n],b=document.createElement('button');b.type='button';const ok=p&&p.length>=2;b.className='hc'+(h.n==sel?' on':'')+(ok?'':' todo');
    let txt='not placed';if(ok){const y=yards(p),d=h.yd?y-h.yd:null;txt=`${y} yd`+(d==null?'':` <span class="${Math.abs(d)<=25?'ok':Math.abs(d)<=60?'mid':'bad'}">${d>0?'+':''}${d}</span>`)}
    b.innerHTML=`<b>${h.n}</b><span>${txt}</span>${h.par?`<small>par ${h.par}${h.yd?' · '+h.yd:''}</small>`:''}${mine.osm.includes(h.n)?'<small title="Already in OpenStreetMap">OSM</small>':''}`;b.onclick=()=>{if(placing){if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false)}sel=h.n;render();const q=R[h.n];if(q&&q.length)map.fitBounds(L.latLngBounds(q),{padding:[80,80],maxZoom:18})};box.append(b)});
-  const n=card.filter(h=>R[h.n]?.length>=2).length;$('dcp').disabled=!n;$('dosm').disabled=!fresh().length}
+  $('dosm').disabled=!fresh().length}
  const fresh=()=>card.filter(h=>R[h.n]?.length>=2&&!mine.osm.includes(h.n));
  let placing=false;
  function hint(){const p=R[sel]||[];st.textContent=placing?(p.length==0?`Hole ${sel}: click its tee.`:`Hole ${sel}: now click its green.`)+' (Esc or Cancel to stop)'
@@ -64,7 +65,7 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  function place(ll){const p=R[sel]||(R[sel]=[]);p.push([ll.lat,ll.lng]);save();
   if(p.length<2){render();return}
   const was=sel,nx=card.find(h=>!(R[h.n]?.length>=2));setPlacing(false);if(nx)sel=nx.n;render();
-  st.textContent=`Hole ${was} placed.`+(nx?` Click Add hole to place hole ${nx.n}.`:' Every hole is placed. Click Copy for Claude when they look right.')}
+  st.textContent=`Hole ${was} placed.`+(nx?` Click Add hole to place hole ${nx.n}.`:' Every hole is placed. Click Export to OSM when they look right.')}
  $('dadd').onclick=()=>{
   if(placing){if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false);render();return}
   const h=R[sel]?.length>=2?card.find(x=>!(R[x.n]?.length>=2)):card.find(x=>x.n==sel);
@@ -78,21 +79,30 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  $('dunb').onclick=()=>{const p=cur();if(p.length>2){p.splice(p.length-2,1);save();render()}else st.textContent=`Hole ${sel} has no bends.`};
  let armed=0;$('dclr').onclick=()=>{if(!cur().length)return;if(!armed){armed=setTimeout(()=>{armed=0;$('dclr').textContent='Clear hole'},4000);$('dclr').textContent=`Click again to clear hole ${sel}`;return}
   clearTimeout(armed);armed=0;$('dclr').textContent='Clear hole';delete R[sel];save();render()};
- const geo=()=>JSON.stringify({type:'FeatureCollection',course:slug,name:c.n,
-  source:`Drawn by the owner on the USGS aerial in the site's hole editor, ${new Date().toISOString().slice(0,10)}. Hole order from the owner. Approximate.`,
-  features:card.filter(h=>R[h.n]?.length>=2).map(h=>({type:'Feature',properties:{kind:'hole',ref:String(h.n),par:String(h.par??''),...(mine.osm.includes(h.n)?{osm:true}:{})},geometry:{type:'LineString',coordinates:R[h.n].map(q=>[+q[1].toFixed(7),+q[0].toFixed(7)])}}))},null,1);
- // Export to OSM: a JOSM file with only the holes drawn here (not ones that came from OpenStreetMap),
- // in the same form as Build Kit/import_traced.py's OSM Uploads files. He checks and uploads it in JOSM himself.
+ // Export to OSM: a JOSM file with only the holes drawn here (not ones that came from OpenStreetMap).
+ // He checks and uploads it in JOSM himself. At a club with several courses ("Club – Course") or next to
+ // another course's holes (c.tgc), each hole also gets a name ("Course 1", the TGC hole name filter text) and
+ // golf:course:name, so TGC Designer Tools and update_hole_map.py pick the right holes.
+ const sub=c.n.includes(' – ')?c.n.split(' – ').slice(1).join(' – '):'',pre=c.tgc?.f||sub;
  const osmXml=hs=>{const q=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));let id=0;const nodes=[],ways=[];
   for(const h of hs){const refs=R[h.n].map(p=>{id--;nodes.push(`  <node id="${id}" action="modify" visible="true" lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}"/>`);return id});
-   ways.push([refs,{golf:'hole',ref:String(h.n),...(h.par?{par:String(h.par)}:{})}])}
+   ways.push([refs,{golf:'hole',ref:String(h.n),...(h.par?{par:String(h.par)}:{}),...(pre?{name:`${pre} ${h.n}`}:{}),...(sub?{'golf:course:name':c.n}:{})}])}
   const out=['<?xml version="1.0" encoding="UTF-8"?>','<osm version="0.6" generator="Oklahoma Course Workshop">',...nodes];
   for(const [refs,tags] of ways){id--;out.push(`  <way id="${id}" action="modify" visible="true">`,...refs.map(r=>`    <nd ref="${r}"/>`),...Object.entries(tags).map(([k,v])=>`    <tag k="${q(k)}" v="${q(v)}"/>`),'  </way>')}
   return out.concat('</osm>').join('\n')+'\n'};
- $('dosm').onclick=()=>{const hs=fresh();if(!hs.length){st.textContent='Nothing new to export: every placed hole already came from OpenStreetMap.';return}
+ $('dosm').onclick=async()=>{const hs=fresh();if(!hs.length){st.textContent='Nothing new to export: every placed hole already came from OpenStreetMap.';return}
   const ns=hs.map(h=>h.n).join(', ');
   if(!confirm(`Export hole${hs.length>1?'s':''} ${ns} of ${c.n} as an OpenStreetMap file?\n\nOnly upload holes whose order you know first-hand. You check and upload the file yourself in JOSM.`))return;
-  fileout(`${slug}.osm`,osmXml(hs),'application/xml');st.textContent=`Saved ${slug}.osm (hole${hs.length>1?'s':''} ${ns}) to your Downloads. Open it in JOSM, check it against the imagery, then upload it.`};
+  const tail=`Open it in JOSM, check it against the imagery and upload it, then tell Claude "update ${c.n}".`;
+  // Save as window (Edge/Chrome): the browser remembers the last folder under this id, so after he picks his
+  // folder once (owner, Nov 13 2026: OneDrive\Golf Courses\Web Course Files\Course hole maps; he moves files to
+  // its Done subfolder himself after JOSM) every export opens there. A page can't name a folder itself. Other browsers: the usual download to Downloads.
+  if(window.showSaveFilePicker){let fh;
+   try{fh=await showSaveFilePicker({id:'okw-osm-export',suggestedName:`${slug}.osm`,types:[{description:'OpenStreetMap file',accept:{'application/xml':['.osm']}}]})}
+   catch(e){if(e.name=='AbortError'){st.textContent='Export cancelled; nothing was saved.';return}fh=null}
+   if(fh){try{const w=await fh.createWritable();await w.write(osmXml(hs));await w.close();st.textContent=`Saved ${fh.name} (hole${hs.length>1?'s':''} ${ns}). ${tail}`;return}
+    catch{st.textContent="Couldn't save there; saving to your Downloads instead."}}}
+  fileout(`${slug}.osm`,osmXml(hs),'application/xml');st.textContent=`Saved ${slug}.osm (hole${hs.length>1?'s':''} ${ns}) to your Downloads. ${tail}`};
  // Import from OSM: load this course's current OpenStreetMap holes onto the map, replacing drawn lines for those numbers.
  $('dimp').onclick=async()=>{const b=$('dimp');b.disabled=true;st.textContent='Checking OpenStreetMap…';let ws;
   try{ws=await osmHoles(c)}catch{st.textContent="Couldn't get an answer from OpenStreetMap. Its servers may be busy; try again in a few minutes.";b.disabled=false;return}
@@ -102,6 +112,5 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   if(!confirm(`OpenStreetMap has hole${ns.length>1?'s':''} ${ns.join(', ')} for ${c.n}.`+(over.length?`\n\nThis replaces your drawn line${over.length>1?'s':''} for hole${over.length>1?'s':''} ${over.join(', ')}.`:'')+'\n\nLoad them onto the map?')){hint();return}
   for(const n of ns){R[n]=got[n];if(!mine.osm.includes(n))mine.osm.push(n)}save();render();
   map.fitBounds(L.latLngBounds(Object.values(R).flat()),{padding:[40,40]});st.textContent=`Loaded hole${ns.length>1?'s':''} ${ns.join(', ')} from OpenStreetMap.`};
- $('dcp').onclick=async()=>{const t=$('dtxt');t.value=geo();try{await navigator.clipboard.writeText(t.value);st.textContent='Copied. In the chat with Claude, type /holes, press Ctrl+V and send.'}catch{t.style.display='block';t.select();st.textContent='Press Ctrl+C to copy. In the chat with Claude, type /holes, press Ctrl+V and send.'}};
  render();
 })();
