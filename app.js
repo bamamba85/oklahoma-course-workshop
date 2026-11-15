@@ -168,7 +168,7 @@ function scorecard(c){if(!c.holes.length)return `<p>No hole-by-hole card has bee
  const row=(l,f,sum,lab)=>`<tr><td>${lab??esc(l)}</td>${cols.map(x=>x.h?`<td>${f(x.h)??''}</td>`:`<td class="tot">${sum?part(x.a,x.b,f)||'':''}</td>`).join('')}</tr>`;
  // nn: the names of the two nines of an 18 made from two named nines (e.g. Heritage/Legends), shown above each nine's columns
  const nn=H.length==18&&Array.isArray(c.nn)&&c.nn.length==2?`<tr class="nines"><td></td>${c.nn.map(n=>`<th scope="colgroup" colspan="10">${esc(n)}</th>`).join('')}<td></td></tr>`:'';
- return `<div class="sw"><table><thead>${nn}<tr><th scope="col">Hole</th>${cols.map(x=>`<th scope="col">${x.h?x.h[0]:x.t}</th>`).join('')}</tr></thead><tbody>${c.tees.map((t,i)=>[t,i]).reverse().map(([t,i])=>row(t,h=>h[3][i],1,tlab(c.tc&&c.tc[i],t))).join('')}${row('Par',h=>h[1],1)}${row('Handicap',h=>h[2])}</tbody></table></div>`}
+ return `<div class="sw"><table><thead>${nn}<tr><th scope="col">Hole</th>${cols.map(x=>`<th scope="col">${x.h?x.h[0]:x.t}</th>`).join('')}</tr></thead><tbody>${c.tees.map((t,i)=>[t,i]).reverse().map(([t,i])=>row(t,h=>h[3][i],1,tlab(c.tc&&c.tc[i],t))).join('')}${row('Par',h=>h[1],1)}${row(H.some(h=>h[4])?"Men's handicap":'Handicap',h=>h[2])}${H.some(h=>h[4])?row("Women's handicap",h=>h[4]):''}</tbody></table></div>`}
 // The Game tab: the owner's PGA Tour 2K25 designer settings, from his workbook (import_game_settings.py).
 // Panels follow the game's own menus and labels, scorecard-style: Fairway, Green, Rough on the left; Bunker, Environment on the right.
 // Every value can be edited; edits stay in this browser (localStorage 'okw-game', never 'okw') and download as a CSV row
