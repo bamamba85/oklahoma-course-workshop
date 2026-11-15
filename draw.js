@@ -85,21 +85,25 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  // He checks and uploads it in JOSM himself. At a club with several courses ("Club – Course") or next to
  // another course's holes (c.tgc), each hole also gets a name ("Course 1", the TGC hole name filter text) and
  // golf:course:name, so TGC Designer Tools and update_hole_map.py pick the right holes.
+ // golf:course:name (the course's name) is asked about at every export (owner, Nov 14 2026), not only at multi-course clubs.
  const sub=c.n.includes(' – ')?c.n.split(' – ').slice(1).join(' – '):'',pre=c.tgc?.f||sub;
- const osmXml=hs=>{const q=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));let id=0;const nodes=[],ways=[];
+ const osmXml=(hs,tag)=>{const q=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));let id=0;const nodes=[],ways=[];
   for(const h of hs){const refs=R[h.n].map(p=>{id--;nodes.push(`  <node id="${id}" action="modify" visible="true" lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}"/>`);return id});
-   ways.push([refs,{golf:'hole',ref:String(h.n),...(h.par?{par:String(h.par)}:{}),...(pre?{name:`${pre} ${h.n}`}:{}),...(sub?{'golf:course:name':c.n}:{})}])}
+   ways.push([refs,{golf:'hole',ref:String(h.n),...(h.par?{par:String(h.par)}:{}),...(pre?{name:`${pre} ${h.n}`}:{}),...(tag?{'golf:course:name':c.n}:{})}])}
   const out=['<?xml version="1.0" encoding="UTF-8"?>','<osm version="0.6" generator="Oklahoma Course Workshop">',...nodes];
   for(const [refs,tags] of ways){id--;out.push(`  <way id="${id}" action="modify" visible="true">`,...refs.map(r=>`    <nd ref="${r}"/>`),...Object.entries(tags).map(([k,v])=>`    <tag k="${q(k)}" v="${q(v)}"/>`),'  </way>')}
   return out.concat('</osm>').join('\n')+'\n'};
- // No pop-up confirm (the Claude app's browser pane blocks them, Nov 13 2026): the first click arms the
- // button for 6 seconds, like Clear hole; the second click exports.
- let xarm=0;
- $('dosm').onclick=async()=>{const hs=fresh();if(!hs.length){st.textContent='Nothing new to export: every placed hole already came from OpenStreetMap.';return}
-  const ns=hs.map(h=>h.n).join(', '),b=$('dosm');
-  if(!xarm){xarm=setTimeout(()=>{xarm=0;b.textContent='Export to OSM';hint()},6000);b.textContent=`Click again to export`;
-   st.textContent=`Export hole${hs.length>1?'s':''} ${ns} of ${c.n}? Only upload holes whose order you know first-hand; you check and upload the file yourself in JOSM.`;return}
-  clearTimeout(xarm);xarm=0;b.textContent='Export to OSM';
+ // No pop-up confirm (the Claude app's browser pane blocks them, Nov 13 2026): Export to OSM opens a question
+ // row instead (owner, Nov 14 2026): add golf:course:name or not, every time; either answer saves the file.
+ const ask=$('dask'),askq=$('daskq');let xhs=null;
+ const unask=()=>{ask.hidden=true;xhs=null};
+ $('dosm').onclick=()=>{const hs=fresh();if(!hs.length){unask();st.textContent='Nothing new to export: every placed hole already came from OpenStreetMap.';return}
+  xhs=hs;const ns=hs.map(h=>h.n).join(', ');
+  askq.textContent=`Export hole${hs.length>1?'s':''} ${ns}. Add golf:course:name = "${c.n}" to ${hs.length>1?'each hole':'the hole'}?`+(sub?' This club has several courses, so the tag helps pick its holes.':'');
+  st.textContent='Only upload holes whose order you know first-hand; you check and upload the file yourself in JOSM.';ask.hidden=false;$('dyes').focus()};
+ $('dcan').onclick=()=>{unask();st.textContent='Export cancelled; nothing was saved.'};
+ $('dyes').onclick=()=>xport(true);$('dno').onclick=()=>xport(false);
+ const xport=async tag=>{const hs=xhs;unask();if(!hs)return;const ns=hs.map(h=>h.n).join(', '),osmXml_=()=>osmXml(hs,tag);
   const tail=`Open it in JOSM, check it against the imagery and upload it, then tell Claude "update ${c.n}".`;
   // Save as window (Edge/Chrome): the browser remembers the last folder under this id, so after he picks his
   // folder once (owner, Nov 13 2026: OneDrive\Golf Courses\Web Course Files\Course hole maps; he moves files to
@@ -107,9 +111,9 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   if(window.showSaveFilePicker){let fh;
    try{fh=await showSaveFilePicker({id:'okw-osm-export',suggestedName:`${slug}.osm`,types:[{description:'OpenStreetMap file',accept:{'application/xml':['.osm']}}]})}
    catch(e){if(e.name=='AbortError'){st.textContent='Export cancelled; nothing was saved.';return}fh=null}
-   if(fh){try{const w=await fh.createWritable();await w.write(osmXml(hs));await w.close();st.textContent=`Saved ${fh.name} (hole${hs.length>1?'s':''} ${ns}). ${tail}`;return}
+   if(fh){try{const w=await fh.createWritable();await w.write(osmXml_());await w.close();st.textContent=`Saved ${fh.name} (hole${hs.length>1?'s':''} ${ns}). ${tail}`;return}
     catch{st.textContent="Couldn't save there; saving to your Downloads instead."}}}
-  fileout(`${slug}.osm`,osmXml(hs),'application/xml');st.textContent=`Saved ${slug}.osm (hole${hs.length>1?'s':''} ${ns}) to your Downloads. ${tail}`};
+  fileout(`${slug}.osm`,osmXml_(),'application/xml');st.textContent=`Saved ${slug}.osm (hole${hs.length>1?'s':''} ${ns}) to your Downloads. ${tail}`};
  // Import from OSM: load this course's current OpenStreetMap holes onto the map, replacing drawn lines for those numbers.
  // two steps, no pop-up: the first click asks OpenStreetMap and says what it found; "Load them" (within 20 s) loads them
  let pend=null,ptm=0;
