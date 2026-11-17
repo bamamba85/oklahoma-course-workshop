@@ -234,6 +234,53 @@ const GPRINT=[['Theme',[['','Theme']]],['Fairway',[['Texture','Fairway Texture']
 // (osm_check.py -> data/tgc_filter.json -> c.tgc). The tool keeps holes whose OpenStreetMap `name` contains the
 // filter text and needs plain hole numbers; this says what to type, or what to fix in OpenStreetMap first.
 const TGCST={ready:'Ready',names:'Needs hole names',refs:'Needs plain hole numbers',clash:'Needs different hole names'};
+// Show LIDAR (owner, Nov 17 2026): asks USGS's tile index (TNM, from the browser) which point-cloud tiles lie under
+// the course, draws the listed ones (yellow) and the survey's other tiles (white) over the holes, numbered the same
+// way as Build Kit/lidar_map.py (per survey, north-west first), and marks hole parts no listed tile covers (magenta).
+// It only shows; changing the list is done with Claude ("check lidar <course>").
+const TNM='https://tnmaccess.nationalmap.gov/api/v1/products';let lm;
+async function lidarCheck(c){const box=$('lidbox'),st=$('lidst'),b=$('lidck');
+ if(!box.hidden&&lm){box.hidden=true;b.setAttribute('aria-pressed','false');return}
+ box.hidden=false;b.setAttribute('aria-pressed','true');if(lm){lm.invalidateSize();return}
+ st.textContent='Asking USGS which tiles cover the course…';
+ if(!await loadLeaflet()){st.textContent="The map library didn't load. Check the internet connection and try again.";return}
+ let g=null;if(c.gj)try{g=await fetch(`files/geojson/${c.s}.geojson`).then(r=>r.json())}catch{}
+ // what the tiles must cover: points along the holes and on the greens, tees and fairways (as lidar_map.py)
+ const pts=[];for(const f of g?.features||[]){const k=f.properties.kind,t=f.geometry.type,cs=f.geometry.coordinates;if(!['hole','green','tee','fairway'].includes(k))continue;
+  const rings=t=='LineString'?[cs]:t=='Polygon'?[cs[0]]:t=='MultiPolygon'?cs.map(q=>q[0]):[];
+  for(const r of rings){for(let i=0;i+1<r.length;i++){const[x0,y0]=r[i],[x1,y1]=r[i+1],n=Math.max(1,Math.floor(Math.hypot((x1-x0)*92000,(y1-y0)*111320)/10));for(let j=0;j<n;j++)pts.push([x0+(x1-x0)*j/n,y0+(y1-y0)*j/n])}if(r.length)pts.push(r[r.length-1].slice(0,2))}}
+ let need;if(pts.length){const lo=pts.map(p=>p[0]),la=pts.map(p=>p[1]),m=60/111320,mx=m/Math.cos(la[0]*Math.PI/180);need=[Math.min(...lo)-mx,Math.min(...la)-m,Math.max(...lo)+mx,Math.max(...la)+m]}
+ else need=[c.ob[1],c.ob[0],c.ob[3],c.ob[2]];
+ const items=[];try{for(let off=0;;off+=200){const q=new URLSearchParams({datasets:'Lidar Point Cloud (LPC)',bbox:[need[0]-.01,need[1]-.01,need[2]+.01,need[3]+.01].map(v=>v.toFixed(6)).join(','),max:200,offset:off,outputFormat:'JSON'});
+  const j=await fetch(`${TNM}?${q}`).then(r=>{if(!r.ok)throw 0;return r.json()});items.push(...(j.items||[]));if(off+200>=(j.total||0))break}}
+ catch{st.textContent="USGS didn't answer. Its tile index is sometimes busy; try again in a few minutes.";return}
+ const P={};for(const it of items){if(!['LAZ',''].includes((it.format||'').toUpperCase()))continue;const m=(it.downloadURL||'').match(/\/Projects\/([^/]+)\/(?:[^/]+\/)?(?:LAZ|laz)\//);if(!m)continue;(P[m[1]]=P[m[1]]||[]).push({t:it.title,u:it.downloadURL,b:it.boundingBox})}
+ for(const ts of Object.values(P)){ts.sort((a,b)=>-Math.round(a.b.maxY*1e3)+Math.round(b.b.maxY*1e3)||a.b.minX-b.b.minX);ts.forEach((t,i)=>t.n=i+1)}
+ const inside=(b,p,buf=0)=>p[0]>=b.minX-buf/92000&&p[0]<=b.maxX+buf/92000&&p[1]>=b.minY-buf/111320&&p[1]<=b.maxY+buf/111320,
+  share=bs=>pts.length?pts.filter(p=>bs.some(b=>inside(b,p))).length/pts.length:0,near=ts=>ts.filter(t=>pts.some(p=>inside(t.b,p,30)));
+ const mine=new Set(c.lidar.map(f=>f.u)),pj=Object.keys(P).find(k=>P[k].some(t=>mine.has(t.u)))||null,listed=pj?P[pj].filter(t=>mine.has(t.u)):[];
+ const bb=t=>[[t.b.minY,t.b.minX],[t.b.maxY,t.b.maxX]],all=L.latLngBounds([[need[1],need[0]],[need[3],need[2]]]);for(const t of listed)all.extend(bb(t));
+ lm=L.map('lidmap',{dragging:true,scrollWheelZoom:false,maxZoom:18,zoomSnap:.25});lm.fitBounds(all,{padding:[6,6]});imagery(lm,18);
+ const view=all.pad(.35);
+ const tl=L.layerGroup().addTo(lm),lab=(t,on)=>L.marker([(t.b.minY+t.b.maxY)/2,(t.b.minX+t.b.maxX)/2],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<div class="ltn${on?' on':''}">${t.n}</div>`,iconSize:[40,30],iconAnchor:[20,15]})});
+ if(pj)for(const t of P[pj]){const on=mine.has(t.u);if(!on&&!view.intersects(bb(t)))continue;L.rectangle(bb(t),on?{color:'#FFD600',weight:3,fillColor:'#FFD600',fillOpacity:.14}:{color:'#fff',weight:1.5,opacity:.8,fill:false}).bindTooltip(t.t.replace('USGS Lidar Point Cloud ','')).addTo(tl);lab(t,on).addTo(tl)}
+ for(const f of g?.features||[]){if(f.properties.kind!='hole'||f.geometry.type!='LineString')continue;const p=f.geometry.coordinates.map(q=>[q[1],q[0]]);
+  L.polyline(p,{color:'#000',opacity:.55,weight:5,interactive:false}).addTo(lm);L.polyline(p,{color:'#ff463c',weight:2.5,interactive:false}).addTo(lm)}
+ const lb=listed.map(t=>t.b),miss=pts.filter(p=>!lb.some(b=>inside(b,p)));
+ for(const p of miss.filter((_,i)=>i%2==0))L.circleMarker([p[1],p[0]],{radius:3,stroke:false,fillColor:'#ff00dc',fillOpacity:1,interactive:false}).addTo(lm);
+ lm.on('click',()=>lm.scrollWheelZoom.enable());lm.on('mouseout',()=>lm.scrollWheelZoom.disable());
+ const cov=share(lb),yr=k=>Math.max(0,...(k.match(/(?<!\d)20\d\d(?!\d)/g)||[]).map(Number),...((k.match(/_D(\d\d)\b/)||[])[1]?[2000+ +k.match(/_D(\d\d)\b/)[1]]:[]));
+ const other=Object.keys(P).filter(k=>k!=pj).map(k=>({k,n:near(P[k]).length,s:share(near(P[k]).map(t=>t.b))})).filter(o=>o.n).sort((a,b)=>yr(b.k)-yr(a.k));
+ const pc=x=>Math.round(x*100)+'%',lines=[];
+ if(!pts.length)lines.push('<b>No hole map yet</b>, so there is nothing to measure against. Check the LIDAR with Claude once the holes are drawn.');
+ else if(!pj)lines.push('<b>None of the listed tiles were found</b> in the USGS index for this spot.');
+ else lines.push(`The <b>${listed.length} listed ${listed.length==1?'tile':'tiles'}</b> (yellow, survey ${esc(pj)}) cover <b>${pc(cov)}</b> of the holes, greens, tees and fairways.`);
+ if(listed.length>6)lines.push('<span class="lw">More than 6 tiles: TGC Designer Tools may struggle with this many.</span>');
+ if(pts.length&&pj&&cov<.99)lines.push('<span class="lw">Magenta dots: parts of the course no listed tile covers.</span>');
+ if(other.length)lines.push('Other surveys here: '+other.map(o=>`${esc(o.k)} (${yr(o.k)||'year?'}) covers ${pc(o.s)} with ${o.n} ${o.n==1?'tile':'tiles'}`).join('; ')+'.');
+ lines.push(`Not right? Tell Claude <button type="button" class="btn sm" id="lidcp">Copy “check lidar ${esc(c.n)}”</button>`);
+ st.innerHTML=lines.map(l=>`<span>${l}</span>`).join('');
+ $('lidcp').onclick=async()=>{const t=`check lidar ${c.n}`;try{await navigator.clipboard.writeText(t);$('lidcp').textContent='Copied'}catch{$('lidcp').textContent=t}}}
 function tgcbox(c){const t=c.tgc;if(!t)return'';const pl=s=>/[-,]/.test(s);
  const near=[...t.near.map(n=>n.replace(' - ',' – ')),...(t.unl?[`${t.unl} hole${t.unl>1?'s':''} not in the guide`]:[])].join(', ');
  const say=t.st=='ready'?`<p>Type <code>${esc(t.f)}</code> in the hole name filter. It matches all ${t.holes} holes here and none nearby.</p>`
@@ -293,7 +340,8 @@ async function kit(){
  <section class="printonly pgame" id="pgame">${gprint(c)}</section><section class="printonly pnotes"><h2>Notes:</h2><div class="pnl"></div></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>${tgcbox(c)}
- <p class="acts"><a class="btn go" href="files/lidar/${c.s}.txt" download>Download point cloud link list</a> <a class="btn" href="files/Primary_Build_Files.csv" download>Download EPSG list, all courses</a></p>
+ <p class="acts"><a class="btn go" href="files/lidar/${c.s}.txt" download>Download point cloud link list</a> <a class="btn" href="files/Primary_Build_Files.csv" download>Download EPSG list, all courses</a>${PC&&c.ob&&!window.OKW_PREVIEW?' <button type="button" class="btn" id="lidck" aria-pressed="false" aria-controls="lidbox">Show LIDAR</button>':''}</p>
+ <div id="lidbox" class="lidbox" hidden><div id="lidmap" class="lidmap"></div><p id="lidst" class="lidst" role="status"></p></div>
  <p>USGS limits rapid requests, so set a download manager to one or two files at a time and retry any that fail. Save all of a course's tiles in one folder.</p>
  <details open><summary>Point cloud tiles (LAZ): ${c.lidar.length} ${c.lidar.length==1?'file':'files'}</summary>${ft(c.lidar)}</details>
  <details><summary>Using LIDAR in 2K25</summary><p>The <a href="https://github.com/malifica/TGC-Designer-Tools/releases" rel="noopener">2K25 version of TGC Designer Tools</a> (Beta 3.1 or later) reads the coordinate system from each file and scales feet to meters itself, for both position and height. It works from local LAZ files and a local OpenStreetMap file, and exports a .course file. This workflow hasn't been tested here, so try one course before relying on it.</p><ul class="lk"><li><a href="https://tgctours.proboards.com/board/97/tgc-golf-tools-lidar-osm" rel="noopener">TGC Golf Tools, LIDAR and OSM forum</a></li><li><a href="https://tgctours.proboards.com/thread/36147/lidar-courses-2k25-resolution-bunkers" rel="noopener">LIDAR courses in 2K25 thread</a></li></ul></details>
@@ -314,6 +362,7 @@ async function kit(){
  // Go back (keeping the list's search and scroll) only when the page before was the home page, never the hole editor.
  $('back').onclick=e=>{try{const r=new URL(document.referrer);if(r.origin===location.origin&&/(\/|index\.html|home\.html)$/.test(r.pathname)&&history.length>1){e.preventDefault();history.back()}}catch{}};
  if(PC&&c.ob)$('osmck').onclick=()=>osmCheck(c);
+ if($('lidck'))$('lidck').onclick=()=>lidarCheck(c);
  $('bs').value=me.st||'';$('bn').value=me.note||'';
  const save=()=>{const v=store.get();v[c.s]={st:$('bs').value,note:$('bn').value};if(!v[c.s].st&&!v[c.s].note)delete v[c.s];store.set(v);fetch('data/index.json').then(r=>r.json()).then(d=>progress(d))};
  $('bs').oninput=save;$('bn').oninput=save}
