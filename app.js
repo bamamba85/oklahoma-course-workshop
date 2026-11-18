@@ -271,7 +271,33 @@ async function lidarCheck(c){const box=$('lidbox'),st=$('lidst'),b=$('lidck');
  lm=L.map('lidmap',{dragging:true,scrollWheelZoom:false,maxZoom:18,zoomSnap:.25});lm.fitBounds(all,{padding:[6,6]});imagery(lm,18);
  const view=all.pad(.35);
  const tl=L.layerGroup().addTo(lm),lab=(t,on)=>L.marker([(t.b.minY+t.b.maxY)/2,(t.b.minX+t.b.maxX)/2],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:`<div class="ltn${on?' on':''}">${t.n}</div>`,iconSize:[40,30],iconAnchor:[20,15]})});
- if(pj)for(const t of P[pj]){const on=mine.has(t.u);if(!on&&!view.intersects(bb(t)))continue;L.rectangle(bb(t),on?{color:'#FFD600',weight:3,fillColor:'#FFD600',fillOpacity:.14}:{color:'#fff',weight:1.5,opacity:.8,fill:false}).bindTooltip(t.t.replace('USGS Lidar Point Cloud ','')).addTo(tl);lab(t,on).addTo(tl)}
+ // tiles and files point at each other (owner, Nov 17 2026): a compact numbered list of the listed files sits right
+ // under the map, the file table below gets the same numbers, and pointing at a tile or a file lights up both.
+ // The highlight is its own layer that ignores the mouse (restyling the tile itself fought the pointer).
+ const nm=t=>t.t.replace('USGS Lidar Point Cloud ',''),R=new Map(),rows=new Map(),lis=new Map(),note=$('lidnote'),fl=$('lidfiles');
+ for(const tr of fl?fl.querySelectorAll('tbody tr'):[]){const a=tr.querySelector('a');if(a)rows.set(a.getAttribute('href'),tr)}
+ const hl=L.rectangle([[0,0],[0,0]],{color:'#fff700',weight:6,fillColor:'#fff700',fillOpacity:.3,interactive:false});
+ const hot=(t,on,from)=>{const r=R.get(t.u);if(on&&r)hl.setBounds(r.b).addTo(lm);else hl.remove();
+  rows.get(t.u)?.classList.toggle('lhot',on);lis.get(t.u)?.classList.toggle('lhot',on);
+  if(on&&from=='row'&&r&&!lm.getBounds().contains(r.b))lm.panTo(r.b.getCenter());
+  note.textContent=on?`Tile ${t.n}: ${nm(t)}${rows.has(t.u)?(from=='tile'?' (click to download)':''):', not in this course\'s list'}`:''};
+ if(pj)for(const t of P[pj]){const on=mine.has(t.u);if(!on&&!view.intersects(bb(t)))continue;
+  const rect=L.rectangle(bb(t),on?{color:'#FFD600',weight:3,fillColor:'#FFD600',fillOpacity:.14}:{color:'#fff',weight:1.5,opacity:.8,fillOpacity:0}).bindTooltip(nm(t)).addTo(tl);
+  R.set(t.u,{b:L.latLngBounds(bb(t))});lab(t,on).addTo(tl);
+  rect.on('mouseover',()=>hot(t,true,'tile'));rect.on('mouseout',()=>hot(t,false,'tile'));
+  // click a yellow tile to download its file (owner liked it): started after the click is fully over, so the map
+  // is never left mid-drag (Leaflet sends no click after a drag, so dragging the map doesn't download)
+  if(on&&rows.has(t.u))rect.on('click',()=>setTimeout(()=>{const a=document.createElement('a');a.href=t.u;a.download='';document.body.append(a);a.click();a.remove();note.textContent=`Downloading tile ${t.n}: ${nm(t)}`},50))}
+ if(pj){const num=new Map(P[pj].map(t=>[t.u,t])),mb=new Map(c.lidar.map(f=>[f.u,f.mb]));
+  // the compact list under the map: tile number, the tile's short name and size, each a download link
+  const ls=[...rows.keys()].filter(u=>num.has(u)).map(u=>num.get(u)).sort((a,b)=>a.n-b.n);
+  $('lidlist').innerHTML=ls.map(t=>`<a href="${esc(t.u)}" data-u="${esc(t.u)}"><span class="ltag">${t.n}</span>${esc(nm(t).split(' ').pop())}<small>${mb.get(t.u)??''} MB</small></a>`).join('');
+  for(const a of $('lidlist').children){const t=num.get(a.dataset.u);lis.set(t.u,a);a.onmouseenter=()=>hot(t,true,'row');a.onmouseleave=()=>hot(t,false,'row')}
+  // the file table below: same numbers, same order (files no tile here covers stay last)
+  if(fl){const tb=fl.querySelector('tbody');
+   for(const[u,tr]of rows){const t=num.get(u);if(!t)continue;const td=tr.cells[0];td.querySelector('.ltag')?.remove();td.insertAdjacentHTML('afterbegin',`<span class="ltag">${t.n}</span>`);
+    tr.onmouseenter=()=>hot(t,true,'row');tr.onmouseleave=()=>hot(t,false,'row')}
+   [...rows.entries()].sort((a,b)=>(num.get(a[0])?.n??1e9)-(num.get(b[0])?.n??1e9)).forEach(([,tr])=>tb.append(tr))}}
  for(const f of g?.features||[]){if(f.properties.kind!='hole'||f.geometry.type!='LineString')continue;const p=f.geometry.coordinates.map(q=>[q[1],q[0]]);
   L.polyline(p,{color:'#000',opacity:.55,weight:5,interactive:false}).addTo(lm);L.polyline(p,{color:'#ff463c',weight:2.5,interactive:false}).addTo(lm)}
  const lb=listed.map(t=>t.b),miss=pts.filter(p=>!lb.some(b=>inside(b,p)));
@@ -349,9 +375,9 @@ async function kit(){
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>${tgcbox(c)}
  <p class="acts"><a class="btn go" href="files/lidar/${c.s}.txt" download>Download point cloud link list</a> <a class="btn" href="files/Primary_Build_Files.csv" download>Download EPSG list, all courses</a>${PC&&c.ob&&!window.OKW_PREVIEW?' <button type="button" class="btn" id="lidck" aria-pressed="false" aria-controls="lidbox">Show LIDAR</button>':''}</p>
- <div id="lidbox" class="lidbox" hidden><div id="lidmap" class="lidmap"></div><p id="lidst" class="lidst" role="status"></p></div>
+ <div id="lidbox" class="lidbox" hidden><div id="lidmap" class="lidmap"></div><p id="lidnote" class="lidnote" aria-live="polite"></p><div id="lidlist" class="lidlist"></div><p id="lidst" class="lidst" role="status"></p></div>
  <p>USGS limits rapid requests, so set a download manager to one or two files at a time and retry any that fail. Save all of a course's tiles in one folder.</p>
- <details open><summary>Point cloud tiles (LAZ): ${c.lidar.length} ${c.lidar.length==1?'file':'files'}</summary>${ft(c.lidar)}</details>
+ <details open id="lidfiles"><summary>Point cloud tiles (LAZ): ${c.lidar.length} ${c.lidar.length==1?'file':'files'}</summary>${ft(c.lidar)}</details>
  <details><summary>Using LIDAR in 2K25</summary><p>The <a href="https://github.com/malifica/TGC-Designer-Tools/releases" rel="noopener">2K25 version of TGC Designer Tools</a> (Beta 3.1 or later) reads the coordinate system from each file and scales feet to meters itself, for both position and height. It works from local LAZ files and a local OpenStreetMap file, and exports a .course file. This workflow hasn't been tested here, so try one course before relying on it.</p><ul class="lk"><li><a href="https://tgctours.proboards.com/board/97/tgc-golf-tools-lidar-osm" rel="noopener">TGC Golf Tools, LIDAR and OSM forum</a></li><li><a href="https://tgctours.proboards.com/thread/36147/lidar-courses-2k25-resolution-bunkers" rel="noopener">LIDAR courses in 2K25 thread</a></li></ul></details>
  ${c.dem.length?`<details><summary>Backup only: 1-meter elevation model, ${c.dem.length} ${c.dem.length==1?'file':'files'}</summary><p>You don't need these for a normal build. Use them only if the point cloud won't load, and never combine them with it, because they use a different coordinate system.</p>${ft(c.dem)}</details>`:''}</section>`:''}
  ${!c.lidar.length&&c.tgc?`<section class="sec"><h2>LIDAR tool</h2>${tgcbox(c)}</section>`:''}
