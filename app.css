@@ -92,6 +92,7 @@ input,select,textarea{border:1px solid #93A69B;background:#fff;border-radius:var
 .view figcaption{font-size:14px;color:var(--soft);margin-top:6px}
 .view #vh{width:100%;aspect-ratio:4/3;background:#cfd8cc;z-index:0}
 @media (hover:none){.view :is(#vh,#vf){max-height:60vh}}  /* touch screens: always leave page above/below to scroll with */
+.scimg{margin:0 0 16px}.scimg img{display:block;width:100%;height:auto;border:1px solid var(--line,#ccc);border-radius:6px}.scimg figcaption{font-size:14px;color:var(--soft);margin-top:6px}
 .lidbox{margin:0 0 16px}.lidbox[hidden]{display:none}
 .lidmap{height:460px;max-height:60vh;border:1px solid var(--line);border-radius:var(--r);background:#3a4a40}
 .lidst{display:grid;gap:4px;margin:8px 0 0;padding:10px 12px;border:1px solid var(--line);border-left:4px solid #C9A100;border-radius:var(--r);background:var(--panel)}
