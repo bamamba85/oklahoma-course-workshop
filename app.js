@@ -74,6 +74,11 @@ async function home(){
   view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
+ // Top button (owner, Nov 19 2026): PC, phones and tablets (his Fire HD 10 has no tap-the-clock shortcut); shows after
+ // a screen of scrolling and glides all the way back to the top of the page; home page only
+ {const tt=$('totop'),upd=()=>{tt.hidden=scrollY<innerHeight};
+  addEventListener('scroll',upd,{passive:true});upd();
+  tt.onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})}
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
  ['q','sort','mst','dif'].forEach(i=>$(i).oninput=draw);
  function paint(){const rg=view=='reg';svg.classList.toggle('rg',rg);
