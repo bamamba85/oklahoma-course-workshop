@@ -58,22 +58,24 @@ async function home(){
  const rank={Ready:0,Good:1,Thin:2};
  function draw(){const q=$('q').value.toLowerCase().trim(),s=store.get();
   [...$('tabs').children].forEach((b,i)=>{const L=D.filter(T[i][1]);b.querySelector('small').textContent=`${L.filter(c=>DONE.includes(s[c.s]?.st)).length} of ${L.length} done`});
-  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||stat(c,s)==$('mst').value));
-  const o=$('sort').value;R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||a.n.localeCompare(b.n):o=='t'?(a,b)=>rank[a.tier]-rank[b.tier]||a.n.localeCompare(b.n):o=='y'?(a,b)=>(b.y||0)-(a.y||0):(a,b)=>a.n.localeCompare(b.n));
+  let R=D.filter(q?()=>true:T[tab][1]).filter(c=>(!q||(c.n+' '+c.ci+' '+(c.ar||'')+' '+(c.aka||'')).toLowerCase().includes(q))&&(!ft||c.tier==ft)&&(!fr||c.r==fr)&&(!$('mst').value||stat(c,s)==$('mst').value)&&(!$('dif').value||($('dif').value=='-'?!c.d:c.d==$('dif').value)));
+  // Sort (owner, Nov 19 2026): name A-Z / Z-A, town, longest / shortest first; courses with no yardage go last either way
+  const o=$('sort').value,nm=(a,b)=>a.n.localeCompare(b.n),len=d=>(a,b)=>(!a.y)-(!b.y)||d*((a.y||0)-(b.y||0))||nm(a,b);
+  R.sort(o=='c'?(a,b)=>a.ci.localeCompare(b.ci)||nm(a,b):o=='nz'?(a,b)=>nm(b,a):o=='y'?len(-1):o=='ys'?len(1):nm);
   $('ct').textContent=R.length+(R.length==1?' course':' courses')+(q?', searching all tabs':'');
   $('rows').innerHTML=R.length?R.map(c=>`<li><a data-s="${c.s}" href="course.html?c=${c.s}"><b>${esc(c.n)}${c.st=='Unconfirmed'?' <span class="nc">Not Confirmed</span>':''}</b><span class="num">${[c.p?'Par '+c.p:'',c.y?fmt(c.y)+' yds':''].filter(Boolean).join(', ')}</span><span class="m">${esc(c.ci)}${c.mx==null?', not on the map yet':''}, <span class="mine ${s[c.s]?.st?s[c.s].st.split(' ')[0]:'auto'}">${esc(slbl(stat(c,s)))}</span></span>${c.st=='Inactive'?'<span class="num"><span class="lost">Inactive</span></span>':`<span class="num tier ${c.tier}">${c.tier}</span>`}</a></li>`).join(''):'<li class="empty">No courses match. Clear the search, tap the selected map color again, or choose another tab.</li>';
   const show=new Set(R.map(c=>c.s));for(const k in pins)pins[k].classList.toggle('off',!show.has(k));save()}
  // The search, tab, sort, filters and scroll position stay for this browser tab, so coming back to the list keeps them.
  const SK='okw-list';let saved=null;
- function save(){try{sessionStorage.setItem(SK,JSON.stringify({tabn:T[tab][0],q:$('q').value,sort:$('sort').value,mst:$('mst').value,view,ft,fr,y:scrollY}))}catch{}}
+ function save(){try{sessionStorage.setItem(SK,JSON.stringify({tabn:T[tab][0],q:$('q').value,sort:$('sort').value,mst:$('mst').value,dif:$('dif').value,view,ft,fr,y:scrollY}))}catch{}}
  try{saved=JSON.parse(sessionStorage.getItem(SK)||'null')}catch{}
  if(saved){tab=Math.max(0,T.findIndex(t=>t[0]===saved.tabn));  // the tab is kept by name; anything else opens on Everything
-  $('q').value=saved.q||'';$('sort').value=saved.sort||'n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';
+  $('q').value=saved.q||'';$('sort').value=saved.sort||'n';if($('sort').selectedIndex<0)$('sort').value='n';$('mst').value=saved.mst=='-'?'':saved.mst||'';if($('mst').selectedIndex<0)$('mst').value='';$('dif').value=saved.dif||'';if($('dif').selectedIndex<0)$('dif').value='';
   view=saved.view=='reg'?'reg':'tier';ft=saved.ft||'';fr=saved.fr||'';
   [...$('tabs').children].forEach((x,i)=>x.setAttribute('aria-selected',i==tab));[...$('views').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==view))}
  addEventListener('pagehide',save);
  $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=+b.dataset.i;[...$('tabs').children].forEach(x=>x.setAttribute('aria-selected',x==b));draw()};
- ['q','sort','mst'].forEach(i=>$(i).oninput=draw);
+ ['q','sort','mst','dif'].forEach(i=>$(i).oninput=draw);
  function paint(){const rg=view=='reg';svg.classList.toggle('rg',rg);
   svg.querySelectorAll('.co').forEach(p=>p.style.fill=rg&&RC[p.dataset.r]?RC[p.dataset.r]:'');
   svg.querySelectorAll('.pin').forEach(a=>{const c=D.find(x=>x.s==a.dataset.s);a.firstChild.setAttribute('fill',rg?RC[c.r]||'#8FA096':TC[c.tier])});
@@ -359,7 +361,7 @@ async function kit(){
  const PC=!matchMedia('(hover:none)').matches,links=[];
  if(lat){links.push(['Satellite view in Google Maps',`https://www.google.com/maps/@${lat},${lon},1200m/data=!3m1!1e3`,'Latest imagery, good for checking bunkers and paths']);links.push(['Open in Google Earth',earth,c.pin?'Goes to this course\'s pin. 3D view for reading slopes':'3D view for reading slopes']);links.push(['OpenStreetMap',`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`,c.lay=='Traced hole map'?'Not mapped there yet. Add the holes to replace the traced ones':'The source of the hole lines'])}
  if(c.w)links.push(['Club website',c.w,'Clubhouse photos and current details']);{const g=encodeURIComponent;links.push(['Find on GolfPass',c.curl&&c.curl.includes('golfpass.com')?c.curl:`https://www.google.com/search?q=${g(`site:golfpass.com "${c.n}" ${c.ci} Oklahoma`)}`,'Scorecard and hole-by-hole layout']);links.push(['Find on GolfTraxx',`https://www.google.com/search?q=${g(`GolfTraxx "${c.n}" ${c.ci} Oklahoma`)}`,'Hole info and GPS layout (also in the GolfTraxx app)'])}if(c.curl)links.push(['Scorecard source',c.curl,c.csrc==='Official'?'Official card':'Directory listing']);
- const facts=[['Address',[c.a,c.ci,c.z].filter(Boolean).join(', ')],['Type',c.t],['Designer',c.ar],['Opened',c.yr],['Rating and slope',c.sl?`${c.ra} / ${c.sl}`:''],['Our difficulty label',c.d],['Grass',[c.fg,c.gg].filter(Boolean).join(' fairways, ')+(c.gg?' greens':'')],['Also known as',c.aka],['Ranking',c.rk],['On site',c.am.join(', ')],['Tournaments',c.ev.map(e=>e.y+' '+e.e).join('; ')]].filter(x=>x[1]);
+ const facts=[['Address',[c.a,c.ci,c.z].filter(Boolean).join(', ')],['Type',c.t],['Designer',c.ar],['Opened',c.yr],['Rating and slope',c.sl?`${c.ra} / ${c.sl}`:''],['Our difficulty label',c.d&&c.d+(c.dsrc=='estimate'?' (estimated: short course, no published rating)':c.dsrc?` (slope from ${c.dsrc})`:'')],['Grass',[c.fg,c.gg].filter(Boolean).join(' fairways, ')+(c.gg?' greens':'')],['Also known as',c.aka],['Ranking',c.rk],['On site',c.am.join(', ')],['Tournaments',c.ev.map(e=>e.y+' '+e.e).join('; ')]].filter(x=>x[1]);
  K.innerHTML=`<a class="back" id="back" href="index.html">← Back to courses</a><p class="crumb"><a href="index.html">All courses</a> / ${esc(c.r)} / ${esc(c.ci)}</p><h1>${esc(c.n)}</h1>
  <p class="sum">${c.st!='Active'?`<span class="lost ${c.st}">${c.st=='Unconfirmed'?'Not Confirmed':c.st}</span> `:''}${[c.h?c.h+' holes':'',c.p?'par '+c.p:'',c.y?fmt(c.y)+' yards':''].filter(Boolean).join(', ')}${c.ci?' in '+esc(c.ci):''}.</p>
  <div class="acts"><button class="btn go" onclick="print()">Print build sheet</button>${PC?sclink(c,'btn','Download scorecard'):''}${PC&&c.img?`<a class="btn" href="img/holes/${c.s}.jpg" download="${esc(c.n.replace(/[\\/:*?"<>|]/g,''))} course preview.jpg">Download Course Preview</a>`:''}${PC&&c.la&&!c.md&&['Aerial only','None','Partial hole map'].includes(c.lay)?`<a class="btn" href="draw.html?c=${c.s}">Draw hole map</a>`:''}${PC&&c.ob?'<button class="btn" id="osmck" type="button">Check OpenStreetMap</button>':''}${c.lidar.length?`<a class="btn" href="#lidar">Point cloud files, EPSG ${c.pe}</a>`:''}</div>${PC&&c.ob?'<p class="osmst" id="osmst" role="status" hidden></p>':''}
@@ -370,7 +372,7 @@ async function kit(){
  ${shapes(c)}
  ${ck(c.lidar.length?'y':'n','Point cloud',c.lidar.length?`EPSG ${c.pe}, ${feet?'US survey feet':'meters'}, ${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB`:'No match, location unknown')}
  ${ck(c.sl?'y':'n','Rating and slope',c.sl?`${c.ra} / ${c.sl}`:'Not found')}</ul>
- <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option>LIDAR done</option><option value="In progress">In Progress</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
+ <h2>Your build</h2><label for="bs">Status</label><select id="bs"><option value="">${esc(c.os||'No OSM')} (automatic)</option><option>LIDAR done</option><option>Built</option><option>Done by Others</option></select><label for="bn">Notes</label><textarea id="bn" placeholder="Share code, corrections, what's left"></textarea></aside></div>
  <section class="printonly pgame" id="pgame">${gprint(c)}</section><section class="printonly pnotes"><h2>Notes:</h2><div class="pnl"></div></section>
  ${c.lidar.length?`<section class="sec" id="lidar"><h2>Point cloud files</h2><p>These are the primary terrain files for this course. Use them on their own, with no conversion.</p>
  <dl class="facts pc"><dt>EPSG</dt><dd><b>${c.pe}</b>, ${esc(c.pn)}</dd><dt>Units</dt><dd>${feet?'US survey feet, for position and height':'Meters, for position and height'}</dd><dt>Files</dt><dd>${c.lidar.length} ${c.lidar.length==1?'tile':'tiles'}, about ${fmt(Math.round(mb(c.lidar)))} MB</dd><dt>In TGC Tools</dt><dd>Leave Force EPSG and the unit override blank. If the tool can't detect the projection, enter EPSG ${c.pe}${feet?' and a unit of 0.3048006096012192':''}.</dd></dl>${tgcbox(c)}

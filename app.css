@@ -47,6 +47,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 @media(hover:hover){.tabs button:not([aria-selected=true]):hover{background:#FFFFFF8C;color:var(--ink)}}
 @media(max-width:400px){.tabs button{font-size:16px;padding:8px 2px 7px}.tabs small{font-size:11px}}
 .row2{display:flex;gap:8px;flex-wrap:wrap}.row2 input{flex:1 1 180px;min-width:0}
+/* PC: search box and all three menus on one line (owner, Nov 19 2026); the search box gives up the room */
+@media(min-width:601px){.row2{flex-wrap:nowrap}.row2 input{flex:1 1 120px}.row2 select{flex:0 1 auto;min-width:0}}
 input,select,textarea{border:1px solid #93A69B;background:#fff;border-radius:var(--r);padding:9px 10px;font-size:16px;min-height:44px}
 #ct{font-size:14px;color:var(--soft);margin:8px 0 0}
 .rows{list-style:none;margin:0;padding:0}
@@ -189,6 +191,8 @@ footer{padding:20px 24px;color:var(--soft);font-size:14px;border-top:1px solid v
  .kit .vt button[aria-pressed=true]{color:var(--ink);border-color:var(--ink);background:color-mix(in srgb,var(--fairway) 16%,var(--panel));box-shadow:inset 0 0 0 1px var(--ink)}
  /* home page: Sort and status menus split the row evenly, as wide together as the search box (owner, Nov 11 2026) */
  .row2 select{flex:1 1 0;min-width:0}
+ /* Difficulty (Nov 19 2026) gets its own full-width line below them, so no menu is cut off */
+ .row2 #dif{flex:1 1 100%}
 }
 @media(max-width:560px){
  #key{gap:6px}
