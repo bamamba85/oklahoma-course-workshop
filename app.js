@@ -1,6 +1,60 @@
 const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fmt=n=>n==null?'':Number(n).toLocaleString('en-US');
 const store={get(){try{return JSON.parse(localStorage.getItem('okw')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw',JSON.stringify(v))}catch{}}};
+// Sync with GitHub (owner, Nov 19 2026): his progress ('okw' statuses/notes, 'okw-game' 2K25 changes, 'okw-trace' drawn
+// routes) syncs to progress.json in his PRIVATE repository (default bamamba85/okw-progress) using a fine-grained key he
+// pastes once on each of his devices. The key stays in this browser ('okw-sync'), never in backups or the site's code.
+// Without a key nothing is sent anywhere and the guide works as before. Every course's entry in each store merges on its
+// own: unchanged here -> GitHub's copy; changed only here -> ours; changed in both places -> the newer edit wins (edit
+// times are stamped in 'okw-sync-ts' whenever a store is written). 'okw-sync-base' is the copy as last synced.
+const SYNC=(()=>{const K={okw:'p','okw-game':'g','okw-trace':'t'},CFG='okw-sync',TS='okw-sync-ts',BASE='okw-sync-base',LAST='okw-sync-last',API='https://api.github.com/repos/',FILE='progress.json';
+ const orig=Storage.prototype.setItem,J=x=>x===undefined?undefined:JSON.stringify(x);
+ const rd=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch{return d}},wr=(k,v)=>{try{orig.call(localStorage,k,JSON.stringify(v))}catch{}};
+ const cfg=()=>{const c=rd(CFG,null);return c&&c.key&&c.repo?c:null};
+ let timer=null,busy=false,again=false;
+ // stamp the edit time of every course entry that changed, then ask for a sync a few seconds later
+ Storage.prototype.setItem=function(k,v){if(this===localStorage&&k in K){try{const a=rd(k,{}),b=JSON.parse(v)||{},ts=rd(TS,{}),now=Date.now();let any=false;
+   for(const s of new Set([...Object.keys(a),...Object.keys(b)]))if(J(a[s])!==J(b[s])){ts[k+'|'+s]=now;any=true}
+   if(any){wr(TS,ts);if(cfg()){clearTimeout(timer);timer=setTimeout(run,4000)}}}catch{}}return orig.call(this,k,v)};
+ const b64e=s=>{const u=new TextEncoder().encode(s);let o='';for(let i=0;i<u.length;i+=0x8000)o+=String.fromCharCode(...u.subarray(i,i+0x8000));return btoa(o)};
+ const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')),c=>c.charCodeAt(0)));
+ const hdr=(c,raw)=>({Authorization:'Bearer '+c.key,Accept:raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'});
+ const say=(ok,msg)=>{wr(LAST,{at:Date.now(),ok,msg});dispatchEvent(new CustomEvent('okw-sync-status'))};
+ const why=r=>r.status==401?'GitHub refused the key (expired or deleted). Make a new key and connect again.':r.status==403?'The key isn\'t allowed to change this repository. Check its Contents permission is Read and write.':r.status==404?'Can\'t find the repository, or the key can\'t see it.':'GitHub answered '+r.status+'.';
+ async function pull(c){const u=API+c.repo+'/contents/'+FILE;const r=await fetch(u,{headers:hdr(c),cache:'no-store'});
+  if(r.status==404){const rr=await fetch(API+c.repo,{headers:hdr(c),cache:'no-store'});if(rr.ok)return {data:null,sha:null};throw why(rr)}
+  if(!r.ok)throw why(r);const m=await r.json();
+  const txt=m.content&&m.encoding=='base64'?b64d(m.content):await (await fetch(u,{headers:hdr(c,true),cache:'no-store'})).text();
+  let data=null;try{data=JSON.parse(txt)}catch{}return {data,sha:m.sha}}
+ function merge(R){const base=rd(BASE,{}),ts=rd(TS,{}),rts=R?.ts||{},out={v:1,ts:{}};let localChanged=false;
+  for(const [k,code] of Object.entries(K)){const L=rd(k,{}),Rm=R?.[code]||{},B=base[code]||{},M={};
+   for(const s of new Set([...Object.keys(L),...Object.keys(Rm),...Object.keys(B)])){const id=k+'|'+s,l=J(L[s]),r=J(Rm[s]),b=J(B[s]);
+    const mine=l===r||r===b||(l!==b&&(ts[id]||0)>=(rts[id]||0)),v=mine?L[s]:Rm[s];
+    if(v!==undefined)M[s]=v;const t=mine?(ts[id]||rts[id]):rts[id];if(t)out.ts[id]=t}
+   out[code]=M;if(J(M)!==J(L)){wr(k,M);localChanged=true}}
+  wr(TS,{...ts,...out.ts});return {out,localChanged}}  // BASE is updated only once GitHub holds this copy (run)
+ async function run(){const c=cfg();if(!c)return;if(busy){again=true;return}busy=true;clearTimeout(timer);
+  try{let changed=false,done=false;for(let i=0;i<4&&!done;i++){const {data,sha}=await pull(c);const {out,localChanged}=merge(data);changed=changed||localChanged;
+    const same={p:out.p,g:out.g,t:out.t};
+    if(data&&J({p:data.p||{},g:data.g||{},t:data.t||{}})===J(same)){wr(BASE,same);done=true;break}  // GitHub already has it all
+    const body={message:'Progress from '+(c.device||'a device')+' '+new Date().toISOString().slice(0,16).replace('T',' '),content:b64e(JSON.stringify({...out,saved:new Date().toISOString(),device:c.device||''},null,1))};if(sha)body.sha=sha;
+    const r=await fetch(API+c.repo+'/contents/'+FILE,{method:'PUT',headers:{...hdr(c),'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){wr(BASE,same);done=true;break}if(r.status==409||r.status==422)continue;  // another device saved first: pull it and merge again
+    throw why(r)}
+   if(!done)throw 'Another device kept saving at the same time; will try again.';
+   say(true,'');if(changed)dispatchEvent(new CustomEvent('okw-synced'))}
+  catch(e){say(false,typeof e=='string'?e:navigator.onLine===false?'Offline; will sync when back online.':'Couldn\'t reach GitHub; will try again.');
+   if(!(typeof e=='string'&&/key|repository/.test(e))){clearTimeout(timer);timer=setTimeout(run,60000)}}  // a key problem waits for him
+  finally{busy=false;if(again){again=false;setTimeout(run,500)}}}
+ async function connect(key,repo,device){repo=repo.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\/+$/,'');const c={key:key.trim(),repo,device};
+  const r=await fetch(API+repo,{headers:hdr(c),cache:'no-store'});if(!r.ok)throw why(r);const m=await r.json();
+  if(!m.private)throw 'That repository is public, so anyone could read your notes. Use a private repository.';
+  wr(CFG,c);await run();return rd(LAST,{})}
+ function disconnect(){try{localStorage.removeItem(CFG)}catch{}say(true,'');dispatchEvent(new CustomEvent('okw-sync-status'))}
+ // sync when a page opens, when coming back to the tab, and when the connection returns; save on leaving
+ const kick=()=>{if(cfg())run()};setTimeout(kick,0);
+ addEventListener('online',kick);document.addEventListener('visibilitychange',()=>{if(cfg())run()});
+ return {run,connect,disconnect,cfg,last:()=>rd(LAST,null)}})();
 const DONE=['Built','Done by Others'];
 // Status shown for a course: his own (saved in 'okw': LIDAR done, In progress, Built, Done by Others, in build
 // order: converted for 2K25, then building, then built and published; owner, Nov 10 2026) or, if he
@@ -104,7 +158,24 @@ async function home(){
   const g=v._2k25&&typeof v._2k25=='object'?Object.fromEntries(Object.entries(v._2k25).filter(([k,x])=>known(k)&&x&&typeof x=='object')):{};if(Object.keys(g).length)gstore.set({...gstore.get(),...g});
   const tr=v._trace&&typeof v._trace=='object'?Object.fromEntries(Object.entries(v._trace).filter(([k,x])=>known(k)&&x&&typeof x.h=='object')):{};if(Object.keys(tr).length)try{localStorage.setItem('okw-trace',JSON.stringify({...tget(),...tr}))}catch{}
   progress(D);draw();gk();const n=Object.keys(ok).length,m=Object.keys(g).length,t=Object.keys(tr).length;const cn=x=>`${x} ${x==1?'course':'courses'}`;
-  $('rsm').textContent=[n?`Restored ${cn(n)}.`:'',m?`2K25 setting changes for ${cn(m)}.`:'',t?`Drawn hole routes for ${cn(t)}.`:''].filter(Boolean).join(' ')||'Nothing in that file matched a course.'}catch{$('rsm').textContent='That file is not a progress backup. Choose the file made by Download my progress.'}}}
+  $('rsm').textContent=[n?`Restored ${cn(n)}.`:'',m?`2K25 setting changes for ${cn(m)}.`:'',t?`Drawn hole routes for ${cn(t)}.`:''].filter(Boolean).join(' ')||'Nothing in that file matched a course.'}catch{$('rsm').textContent='That file is not a progress backup. Choose the file made by Download my progress.'}}
+ syncui(()=>{progress(D);draw();gk()})}
+// The home page's Sync with GitHub section (owner, Nov 19 2026); refresh() redraws the page after a sync brings changes
+function syncui(refresh){if(!$('sync'))return;
+ const show=()=>{const c=SYNC.cfg(),l=SYNC.last(),t=l?.at?new Date(l.at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+  $('syoff').hidden=!!c||!$('syform').hidden;$('syon').hidden=!c;
+  $('syst').textContent=!c?'Not connected. Your progress is saved in this browser only.':!l?'Connected; syncing…':l.ok?`Synced ${t}${c.device?' · this device: '+c.device:''}`:`Not synced: ${l.msg}`;
+  $('syst').className=c&&l&&!l.ok?'bad':''};
+ $('syc').onclick=()=>{$('syform').hidden=false;$('syoff').hidden=true;$('syk').focus()};
+ $('syx').onclick=()=>{$('syform').hidden=true;$('syk').value='';show()};
+ $('syform').onsubmit=async e=>{e.preventDefault();$('sygo').disabled=true;$('syst').className='';$('syst').textContent='Checking the key with GitHub…';
+  try{const l=await SYNC.connect($('syk').value,$('syr').value,$('syn').value.trim());$('syk').value='';$('syform').hidden=true;show()}
+  catch(err){$('syst').className='bad';$('syst').textContent=typeof err=='string'?err:'Couldn\'t reach GitHub. Check the internet connection and try again.'}
+  finally{$('sygo').disabled=false}};
+ $('sys').onclick=async()=>{$('syst').textContent='Syncing…';await SYNC.run();show()};
+ $('syd').onclick=()=>{if($('syd').dataset.sure){delete $('syd').dataset.sure;$('syd').textContent='Disconnect';SYNC.disconnect();show();return}
+  $('syd').dataset.sure=1;$('syd').textContent='Click again to disconnect';setTimeout(()=>{if($('syd').dataset.sure){delete $('syd').dataset.sure;$('syd').textContent='Disconnect'}},5000)};
+ addEventListener('okw-sync-status',show);addEventListener('okw-synced',refresh);show()}
 // Leaflet (the map library) loads only when a map is first shown; resolves false if it can't load.
 const USGS='https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}';let LL;
 // (named loadLeaflet, not leaflet: Leaflet 1.9 sets window.leaflet to itself, which overwrote the old name and broke the pin map)
@@ -408,4 +479,6 @@ async function kit(){
  if($('lidck'))$('lidck').onclick=()=>lidarCheck(c);
  $('bs').value=me.st||'';$('bn').value=me.note||'';
  const save=()=>{const v=store.get();v[c.s]={st:$('bs').value,note:$('bn').value};if(!v[c.s].st&&!v[c.s].note)delete v[c.s];store.set(v);fetch('data/index.json').then(r=>r.json()).then(d=>progress(d))};
- $('bs').oninput=save;$('bn').oninput=save}
+ $('bs').oninput=save;$('bn').oninput=save;
+ // a sync from another device updated this course: show it unless he's typing here right now
+ addEventListener('okw-synced',()=>{const m=store.get()[c.s]||{};if(document.activeElement!==$('bs'))$('bs').value=m.st||'';if(document.activeElement!==$('bn'))$('bn').value=m.note||'';fetch('data/index.json').then(r=>r.json()).then(d=>progress(d))})}
