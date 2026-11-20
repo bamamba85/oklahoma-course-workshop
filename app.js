@@ -412,6 +412,31 @@ function gprint(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{};let
  const rows=GPRINT.map(([t,fs])=>`<dt>${t}</dt><dd>${fs.map(([l,k])=>`<span>${l?esc(l)+' ':''}<b>${v(k)}</b></span>`).join('')}</dd>`).join('');
  const tg=c.tgc?`<p class="pgtgc">TGC hole name filter: <b>${esc(c.tgc.f||'none yet')}</b>${c.tgc.st=='ready'?'':` (${TGCST[c.tgc.st].toLowerCase()} first)`}</p>`:'';
  return `<h2>PGA Tour 2K25 settings</h2><p class="pgpub">${pub}</p>${tg}<dl class="pg">${rows}</dl>${ed?'<p class="pgnote">✱ changed in this browser, not yet in your workbook</p>':''}`}
+// The Game tab's build picture full screen, on the page (owner, Nov 19 2026: opening the image itself left the page,
+// and Back reloaded it on the Hole map tab). × / Esc / Back (a history entry of its own) close it; a click or tap
+// switches between fit-to-screen and full size, and pinch zoom works too.
+function bigpic(src,alt){let v=$('bpz');
+ if(!v){v=document.createElement('div');v.id='bpz';v.className='bpz';v.setAttribute('role','dialog');v.setAttribute('aria-modal','true');
+  v.innerHTML='<button type="button" class="bpzx" aria-label="Close the picture">×</button><div class="bpzs"><img alt=""></div><p class="bpzh">Click or tap to zoom · × or Back to close</p>';
+  document.body.appendChild(v);
+  const im=v.querySelector('img'),sc=v.querySelector('.bpzs'),hint=v.querySelector('.bpzh');
+  const say=()=>hint.textContent=v.classList.contains('big')?'Drag to move · click to zoom out · × or Back to close':'Click or tap to zoom · × or Back to close';
+  // zoomed in, the mouse drags the picture around (owner, Nov 20 2026); a drag never counts as the click that zooms out.
+  // Touch already slides it with one finger, so only the mouse is handled here.
+  let drag=null,moved=false;im.draggable=false;
+  im.onpointerdown=e=>{if(e.pointerType!='mouse'||e.button!==0||!v.classList.contains('big'))return;
+   drag={x:e.clientX,y:e.clientY,l:sc.scrollLeft,t:sc.scrollTop};moved=false;im.setPointerCapture(e.pointerId);v.classList.add('grab');e.preventDefault()};
+  im.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;
+   sc.scrollLeft=drag.l-dx;sc.scrollTop=drag.t-dy};
+  im.onpointerup=im.onpointercancel=()=>{drag=null;v.classList.remove('grab')};
+  im.onclick=e=>{if(moved){moved=false;return}const r=im.getBoundingClientRect(),fx=(e.clientX-r.left)/r.width,fy=(e.clientY-r.top)/r.height;
+   v.classList.toggle('big');say();if(v.classList.contains('big'))requestAnimationFrame(()=>{sc.scrollLeft=fx*im.offsetWidth-sc.clientWidth/2;sc.scrollTop=fy*im.offsetHeight-sc.clientHeight/2})};
+  v.querySelector('.bpzx').onclick=()=>history.state&&history.state.bpz?history.back():shut();
+  addEventListener('popstate',()=>{if(!v.hidden)shut()});
+  addEventListener('keydown',e=>{if(e.key=='Escape'&&!v.hidden)v.querySelector('.bpzx').click()});
+  function shut(){v.hidden=true;v.classList.remove('big');say();document.body.classList.remove('bpzon');$('bpa')&&$('bpa').focus()}}
+ const im=v.querySelector('img');im.src=src;im.alt=alt||'';v.setAttribute('aria-label',alt||'Picture');
+ v.hidden=false;document.body.classList.add('bpzon');history.pushState({bpz:1},'');v.querySelector('.bpzx').focus()}
 function gwire(c){const base=gbase(c),box=$('vg');
  function mark(){const m=gstore.get()[c.s]||{},n=Object.keys(m).length;box.querySelectorAll('[data-k]').forEach(i=>i.classList.toggle('ed',i.dataset.k in m));$('grs').hidden=!n;$('gst').textContent=n?`${n} ${n==1?'change':'changes'} saved in this browser`:''}
  box.oninput=e=>{const k=e.target.dataset.k;if(!k)return;const all=gstore.get(),m=all[c.s]||{},v=e.target.value.trim();
@@ -419,6 +444,7 @@ function gwire(c){const base=gbase(c),box=$('vg');
  $('grs').onclick=()=>{if(!confirm('Put this course back to the saved 2K25 settings? Your changes here will be removed.'))return;const all=gstore.get();delete all[c.s];gstore.set(all);box.querySelectorAll('[data-k]').forEach(i=>i.value=String(base[i.dataset.k]??''));mark()};
  box.querySelectorAll('.bpsw button').forEach(b=>b.onclick=()=>{box.querySelectorAll('.bpsw button').forEach(x=>{x.classList.toggle('on',x==b);x.setAttribute('aria-pressed',x==b)});$('bpi').src=$('bpa').href=b.dataset.i;
   $('bpi').alt=b.dataset.i.endsWith('-a.jpg')?`USGS aerial photo of ${c.n}, same ground as the build picture`:`Top-down picture of the PGA Tour 2K25 build of ${c.n}`});
+ if($('bpa'))$('bpa').onclick=e=>{e.preventDefault();bigpic($('bpi').getAttribute('src'),$('bpi').alt)};
  $('gdl').onclick=()=>fileout(`${c.s}-2k25-settings.csv`,gcsv([[c.n,k=>box.querySelector(`[data-k="${k}"]`).value.trim()]]),'text/csv');
  mark()}
 async function kit(){
