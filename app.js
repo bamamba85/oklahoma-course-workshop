@@ -307,7 +307,13 @@ function game(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{},val=k
  const field=k=>{const id='g-'+k.replace(/ /g,'-').toLowerCase();return `<div><label for="${id}">${esc(lab(k))}</label>${k=='Theme'?`<select id="${id}" data-k="Theme"><option value="">Not set</option>${(!val(k)||THEMES.includes(val(k))?THEMES:[val(k),...THEMES]).map(t=>`<option${t==val(k)?' selected':''}>${esc(t)}</option>`).join('')}</select>`:`<input id="${id}" data-k="${esc(k)}" type="number" inputmode="numeric" min="0" max="100" step="1" value="${esc(val(k))}">`}</div>`};
  const panel=([t,k,re])=>`<section class="gp ${k}"><h3>${t}</h3>${['Theme',...GL].filter(l=>re.test(l)).map(field).join('')}</section>`;
  const col=ks=>GS.filter(s=>ks.includes(s[1])).map(panel).join('');
- return `<div class="gh"><h2>PGA Tour 2K25</h2><span>${pub}</span></div>
+ // his build from above, turned to match the real course, with a switch to the USGS aerial of the same ground
+ // (build_pictures.py, owner Nov 19 2026); tapping the picture opens it full size
+ const bp=c.bp,bpd=bp&&new Date(bp.d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+ const fig=bp?`<figure class="bp"><div class="bpsw" role="group" aria-label="Picture"><button type="button" class="on" aria-pressed="true" data-i="img/builds/${c.s}.jpg">Your 2K25 build</button><button type="button" aria-pressed="false" data-i="img/builds/${c.s}-a.jpg">Real course (USGS aerial)</button></div>
+ <a id="bpa" href="img/builds/${c.s}.jpg" target="_blank" rel="noopener"><img id="bpi" src="img/builds/${c.s}.jpg" width="${bp.w[0]}" height="${bp.w[1]}" alt="Top-down picture of the PGA Tour 2K25 build of ${esc(c.n)}" loading="lazy"></a>
+ <figcaption>Built in PGA Tour 2K25 by Bamamba85 · <b>${esc(bp.n)}</b> · ${bpd}. Tap the picture to open it full size.</figcaption></figure>`:'';
+ return `<div class="gh"><h2>PGA Tour 2K25</h2><span>${pub}</span></div>${fig}
  <div class="gt"><button type="button" class="btn" id="gdl">Download Game Setting (CSV)</button><button type="button" class="btn" id="grs" hidden>Undo my edits</button><span id="gst" role="status"></span></div>
  <div class="gc"><div>${col(['fw','gr','ro'])}</div><div>${col(['th','bu','te'])}</div></div>
  <p class="gn">${g.set&&g.set.length?'Settings from the 2K25 course designer. Textures are the slot numbers in each picker.':'No 2K25 settings recorded yet. Type yours in.'} Changes save in this browser only. The CSV row lines up with your Details 25 sheet, so it pastes straight in.</p>`}
@@ -411,6 +417,8 @@ function gwire(c){const base=gbase(c),box=$('vg');
  box.oninput=e=>{const k=e.target.dataset.k;if(!k)return;const all=gstore.get(),m=all[c.s]||{},v=e.target.value.trim();
   if(v===String(base[k]??''))delete m[k];else m[k]=v;if(Object.keys(m).length)all[c.s]=m;else delete all[c.s];gstore.set(all);mark()};
  $('grs').onclick=()=>{if(!confirm('Put this course back to the saved 2K25 settings? Your changes here will be removed.'))return;const all=gstore.get();delete all[c.s];gstore.set(all);box.querySelectorAll('[data-k]').forEach(i=>i.value=String(base[i.dataset.k]??''));mark()};
+ box.querySelectorAll('.bpsw button').forEach(b=>b.onclick=()=>{box.querySelectorAll('.bpsw button').forEach(x=>{x.classList.toggle('on',x==b);x.setAttribute('aria-pressed',x==b)});$('bpi').src=$('bpa').href=b.dataset.i;
+  $('bpi').alt=b.dataset.i.endsWith('-a.jpg')?`USGS aerial photo of ${c.n}, same ground as the build picture`:`Top-down picture of the PGA Tour 2K25 build of ${c.n}`});
  $('gdl').onclick=()=>fileout(`${c.s}-2k25-settings.csv`,gcsv([[c.n,k=>box.querySelector(`[data-k="${k}"]`).value.trim()]]),'text/csv');
  mark()}
 async function kit(){
