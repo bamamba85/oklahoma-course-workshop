@@ -393,7 +393,7 @@ async function lidarCheck(c){const box=$('lidbox'),st=$('lidst'),b=$('lidck');
  if(!pts.length)lines.push('<b>No hole map yet</b>, so there is nothing to measure against. Check the LIDAR with Claude once the holes are drawn.');
  else if(!pj)lines.push('<b>None of the listed tiles were found</b> in the USGS index for this spot.');
  else lines.push(`The <b>${listed.length} listed ${listed.length==1?'tile':'tiles'}</b> (yellow, survey ${esc(pj)}) cover <b>${pc(cov)}</b> of the holes, greens, tees and fairways.`);
- if(listed.length>6)lines.push('<span class="lw">More than 6 tiles: TGC Designer Tools may struggle with this many.</span>');
+ // no "more than 6 tiles" warning since Nov 24 2026 (owner: Beta 8.5 on his Windows 11 PC built Battle Creek from 12)
  if(pts.length&&pj&&cov<.99)lines.push('<span class="lw">Magenta dots: parts of the course no listed tile covers.</span>');
  if(other.length)lines.push('Other surveys here: '+other.map(o=>`${esc(o.k)} (${yr(o.k)||'year?'}) covers ${pc(o.s)} with ${o.n} ${o.n==1?'tile':'tiles'}`).join('; ')+'.');
  lines.push(`Not right? Tell Claude <button type="button" class="btn sm" id="lidcp">Copy “check lidar ${esc(c.n)}”</button>`);

@@ -20,23 +20,27 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
  // holes from the scorecard: number, par, back-tee yards
  const card=c.holes.length?c.holes.map(h=>({n:+h[0],par:h[1],yd:h[3]?.[0]??null})):Array.from({length:c.h||18},(_,i)=>({n:i+1,par:null,yd:null}));
  const all=tstore.get(),mine=all[slug]||{at:'',h:{}},R=mine.h;let sel=card.find(h=>!(R[h.n]?.length>=2))?.n??card[0].n;
- const save=()=>{mine.at=new Date().toISOString();const a=tstore.get();if(Object.keys(R).length)a[slug]=mine;else delete a[slug];tstore.set(a)};
+ const save=()=>{mine.at=new Date().toISOString();const a=tstore.get();if(Object.keys(R).length||mine.f?.length)a[slug]=mine;else delete a[slug];tstore.set(a)};
  // zoom to 20 in half steps for fine placement; sharper NAIP photos from zoom 17 (imagery() in app.js)
- const map=L.map('dmap',{zoomControl:true,doubleClickZoom:false,maxZoom:20,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:120}).setView([c.la,c.lo],16);
- imagery(map,20);
+ const map=L.map('dmap',{zoomControl:true,doubleClickZoom:false,maxZoom:23,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:120}).setView([c.la,c.lo],16);
+ imagery(map,23);  // 23 for fine shape tracing (owner, Nov 24 2026); the photo is just enlarged past 18
  // a partly mapped course: show its OpenStreetMap shapes, and start from its numbered OSM holes the first time
  mine.osm=mine.osm||[];
  if(c.gj)try{const g=await fetch(`files/geojson/${slug}.geojson`).then(r=>r.json());
   // fairways, greens, tees and bunkers in the same colors as the hole-map pictures (no water), under the hole lines
   map.createPane('shapes').style.zIndex=350;const shp=shapeLayer(g,'shapes');
-  if(shp.getLayers().length){shp.addTo(map);shapeKey(g).addTo(map);const sb=$('dshp');sb.hidden=false;
-   sb.onclick=()=>{const on=map.hasLayer(shp);on?map.removeLayer(shp):shp.addTo(map);sb.setAttribute('aria-pressed',!on);sb.textContent=on?'Shapes off':'Shapes on'}}
+  // Background on/off (owner, Nov 24 2026): the guide's shapes behind his own, switched apart from Shapes on (his traced shapes)
+  if(shp.getLayers().length){shp.addTo(map);shapeKey(g).addTo(map);const bb=$('dbg');bb.hidden=false;
+   bb.onclick=()=>{const on=map.hasLayer(shp);on?map.removeLayer(shp):shp.addTo(map);bb.setAttribute('aria-pressed',!on);bb.textContent=on?'Background off':'Background on'}}
   if(!mine.at)for(const f of g.features){const n=parseInt(f.properties.ref);if(f.properties.kind=='hole'&&card.some(h=>h.n==n)&&!R[n]&&f.geometry.type=='LineString'){R[n]=f.geometry.coordinates.map(q=>[q[1],q[0]]);if(f.properties.osm||c.osm?.h.some(h=>h[2]==n))mine.osm.push(n)}}
   // (a hole counts as already in OpenStreetMap only if it carries its OSM record; a traced draft, e.g.
   // Generations Nov 13 2026, starts as his own drawing so Export to OSM includes it)
   if(mine.osm.length)sel=card.find(h=>!(R[h.n]?.length>=2))?.n??sel}catch{}
  const done=Object.values(R).flat();if(done.length>1)map.fitBounds(L.latLngBounds(done),{padding:[40,40]});
  const layer=L.layerGroup().addTo(map);
+ // Hole lines on/off (owner, Nov 24 2026): hides the hole lines and tee/green dots while tracing shapes under them
+ const lines=on=>{on?layer.addTo(map):map.removeLayer(layer);const b=$('dlines');b.setAttribute('aria-pressed',on);b.textContent=on?'Hole lines on':'Hole lines off'};
+ $('dlines').onclick=()=>lines(!map.hasLayer(layer));
  const yards=p=>Math.round(p.slice(1).reduce((s,q,i)=>s+L.latLng(p[i]).distanceTo(L.latLng(q)),0)*1.0936);
  const icon=(cls,html,sz)=>L.divIcon({className:'',html:`<div class="${cls}" style="width:${sz}px;height:${sz}px">${html}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
  function chips(){const box=$('dholes');box.textContent='';
@@ -45,7 +49,7 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
    b.innerHTML=`<b>${h.n}</b><span>${txt}</span>${h.par?`<small>par ${h.par}${h.yd?' · '+h.yd:''}</small>`:''}${mine.osm.includes(h.n)?'<small title="Already in OpenStreetMap">OSM</small>':''}`;b.onclick=()=>{if(placing){if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false)}sel=h.n;render();const q=R[h.n];if(q&&q.length)map.fitBounds(L.latLngBounds(q),{padding:[80,80],maxZoom:18})};box.append(b)});
   $('dosm').disabled=!fresh().length}
  const fresh=()=>card.filter(h=>R[h.n]?.length>=2&&!mine.osm.includes(h.n));
- let placing=false;
+ let placing=false,FT=null;
  function hint(){const p=R[sel]||[];st.textContent=placing?(p.length==0?`Hole ${sel}: click its tee.`:`Hole ${sel}: now click its green.`)+' (Esc or Cancel to stop)'
   :p.length<2?`Hole ${sel} isn't placed yet. Click Add hole, then click its tee and its green.`:`Hole ${sel} placed. Drag the dots to adjust; click its line to add a bend; right-click or long-press a white bend to remove it.`}
  function render(){layer.clearLayers();
@@ -53,13 +57,13 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   for(const h of order){const p=R[h.n];if(!p||!p.length)continue;const on=h.n==sel;
    if(p.length>1){L.polyline(p,{color:'#000',opacity:.45,weight:on?8:6,interactive:false}).addTo(layer);
     const ln=L.polyline(p,{color:on?'#FFD84A':'#fff',weight:on?4:3}).addTo(layer);
-    ln.on('click',e=>{L.DomEvent.stopPropagation(e);if(placing){place(e.latlng);return}sel=h.n;let best=1,bd=1e18;const pt=map.latLngToLayerPoint(e.latlng);
+    ln.on('click',e=>{L.DomEvent.stopPropagation(e);if(FT?.busy()){FT.click(e.latlng);return}if(placing){place(e.latlng);return}sel=h.n;let best=1,bd=1e18;const pt=map.latLngToLayerPoint(e.latlng);
      for(let i=1;i<p.length;i++){const d=L.LineUtil.pointToSegmentDistance(pt,map.latLngToLayerPoint(p[i-1]),map.latLngToLayerPoint(p[i]));if(d<bd){bd=d;best=i}}
      p.splice(best,0,[e.latlng.lat,e.latlng.lng]);save();render()})}
    p.forEach((q,i)=>{const first=i==0,last=i==p.length-1&&p.length>1;
     const m=L.marker(q,{draggable:true,autoPan:true,zIndexOffset:on?1000:0,icon:first?icon('tee'+(on?' on':''),h.n,28):last?icon('grn','',22):icon('bend','',14)}).addTo(layer);
     m.on('dragstart',()=>{sel=h.n});m.on('drag',e=>{const ll=e.target.getLatLng();p[i]=[ll.lat,ll.lng];layer.eachLayer(x=>{if(x instanceof L.Polyline&&x.getLatLngs().length==p.length)x.setLatLngs(p)})});
-    m.on('dragend',()=>{save();render()});m.on('click',e=>{if(placing){place(e.latlng);return}if(sel!=h.n){sel=h.n;render()}});
+    m.on('dragend',()=>{save();render()});m.on('click',e=>{if(FT?.busy()){FT.click(e.latlng);return}if(placing){place(e.latlng);return}if(sel!=h.n){sel=h.n;render()}});
     if(!first&&!last)m.on('contextmenu',()=>{p.splice(i,1);save();render()})})}
   chips();hint()}
  // Add hole: the map switches to crosshairs; the next two clicks are the tee and the green.
@@ -72,9 +76,9 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   if(placing){if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false);render();return}
   const h=R[sel]?.length>=2?card.find(x=>!(R[x.n]?.length>=2)):card.find(x=>x.n==sel);
   if(!h){st.textContent='Every hole is placed. To redo one, pick it and click Clear hole.';return}
-  sel=h.n;delete R[sel];render();setPlacing(true)};
+  FT?.cancel();lines(true);sel=h.n;delete R[sel];render();setPlacing(true)};
  addEventListener('keydown',e=>{if(e.key=='Escape'&&placing)$('dadd').click()});
- map.on('click',e=>{if(placing){place(e.latlng);return}if(!(R[sel]?.length>=2))st.textContent=`Click Add hole to place hole ${sel}.`});
+ map.on('click',e=>{if(FT?.busy())return;if(placing){place(e.latlng);return}if(!(R[sel]?.length>=2))st.textContent=`Click Add hole to place hole ${sel}.`});
  const cur=()=>R[sel]||[];
  $('dbend').onclick=()=>{const p=cur();if(p.length<2){hint();return}let bi=1,bl=0;for(let i=1;i<p.length;i++){const l=L.latLng(p[i-1]).distanceTo(L.latLng(p[i]));if(l>bl){bl=l;bi=i}}
   p.splice(bi,0,[(p[bi-1][0]+p[bi][0])/2,(p[bi-1][1]+p[bi][1])/2]);save();render()};
@@ -128,5 +132,7 @@ const tstore={get(){try{return JSON.parse(localStorage.getItem('okw-trace')||'{}
   const over=ns.filter(n=>R[n]?.length&&!mine.osm.includes(n));
   pend={got,ns};b.textContent='Load them';ptm=setTimeout(()=>{pend=null;b.textContent='Import from OSM';hint()},20000);
   st.textContent=`OpenStreetMap has hole${ns.length>1?'s':''} ${ns.join(', ')} for ${c.n}.`+(over.length?` This replaces your drawn line${over.length>1?'s':''} for hole${over.length>1?'s':''} ${over.join(', ')}.`:'')+' Click Load them to put them on the map.'};
+ // shape tracing (features.js, Nov 24 2026): greens, fairways, bunkers, water, buildings, paths; Save for TGC
+ if(window.okwFeatures)FT=okwFeatures({map,c,slug,mine,save,st,card,R,pre,redraw:()=>render(),placing:()=>placing,stopPlacing:()=>{if(R[sel]?.length==1){delete R[sel];save()}setPlacing(false);render()}});
  render();
 })();
