@@ -47,6 +47,18 @@ function okwFeatures(D){
   sb.onclick=()=>{const was=sb.getAttribute('aria-pressed')!='false';
    sb.setAttribute('aria-pressed',!was);sb.textContent=was?'Shapes off':'Shapes on';was?map.removeLayer(lay):lay.addTo(map)}}
  const showShapes=()=>{const sb=$b('dshp');if(sb.getAttribute('aria-pressed')=='false')sb.click()};
+ // LIDAR view (owner, Nov 24 2026): swap the photo for USGS's shaded LIDAR ground (3DEP 1 m elevation, "Hillshade
+ // Gray"), so bunkers can be placed on their dips and greens on their crowns: the photo and the ground can be a few
+ // metres apart, and the game is built from the ground. Shaded per tile like the NAIP photo; enlarged past zoom 19.
+ {const DEM='https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage',rr=encodeURIComponent('{"rasterFunction":"Hillshade Gray"}');
+  const G=L.TileLayer.extend({getTileUrl(c){const W=20037508.342789244,s=2*W/2**c.z,x=-W+c.x*s,y=W-c.y*s;
+   return `${DEM}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&renderingRule=${rr}&f=image`}});
+  const ground=new G('',{maxNativeZoom:19,maxZoom:23,zIndex:5,attribution:'USGS 3DEP LIDAR'});
+  const gb=document.createElement('button');gb.className='btn';gb.id='dground';gb.type='button';gb.setAttribute('aria-pressed','false');
+  gb.title='Show the LIDAR ground (shaded) instead of the photo: bunkers show as dips, greens and tees as raised shapes';gb.textContent='LIDAR view off';
+  $b('dlines').after(gb);
+  gb.onclick=()=>{const on=gb.getAttribute('aria-pressed')!='true';gb.setAttribute('aria-pressed',on);gb.textContent=on?'LIDAR view on':'LIDAR view off';
+   on?ground.addTo(map):map.removeLayer(ground)}}
  // Undo sits in the hole row, after Shapes on, away from Finish shape (owner, Nov 24 2026: clicked it by mistake)
  {const u=document.createElement('button');u.className='btn';u.id='fundo';u.type='button';u.title='Undo the last shape click (Ctrl+Z)';u.textContent='Undo';$b('dlines').after(u)}
  const count=()=>{const n={};F.forEach(f=>n[f.k]=(n[f.k]||0)+1);return Object.entries(n).map(([k,v])=>`${v} ${K[k].t.toLowerCase()}${v>1&&k!='water'?'s':''}`).join(', ')};
