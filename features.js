@@ -126,15 +126,24 @@ function okwFeatures(D){
   const useCheck=async file=>{let d;try{d=JSON.parse(await file.text())}catch{st.textContent=`${file.name} isn't a bunker check file.`;return}
    if(!Array.isArray(d.bunkers)){st.textContent=`${file.name} isn't a bunker check file.`;return}
    const bs=F.filter(f=>f.k=='bunker');
-   ghosts=d.bunkers.map(b=>{let best=null,bd=4;for(const f of bs){const dd=mdist(mid(sm('bunker',f.g)),b.center);if(dd<bd){bd=dd;best=f}}
+   if(!bs.length){st.textContent=`Not loaded: there are no bunkers on the map yet. Open the course's .osm (or Load OSM shapes) first, then click Bunker check.`;return}
+   const gs=d.bunkers.map(b=>{let best=null,bd=4;for(const f of bs){const dd=mdist(mid(sm('bunker',f.g)),b.center);if(dd<bd){bd=dd;best=f}}
     const to=mid(b.outline);return {label:b.label,outline:b.outline,center:b.center,to,f:best}});
+   // Wrong-course guard (owner, Nov 25 2026: loaded Lincoln East's file on Arrowhead): the file names the tgc.osm it was
+   // made from ("<slug> tgc.osm"). Refuse when that's another course and most ghosts match no bunker here, or when none do.
+   const hit=gs.filter(g=>g.f).length,other=d.osm&&!String(d.osm).toLowerCase().startsWith(slug.toLowerCase()+' ');
+   if(gs.length&&(!hit||(other&&hit<gs.length/2))){const who=d.course?`${d.course}`:'another course';
+    st.textContent=`Not loaded: ${file.name} is the bunker check for ${who}, not ${c.n}. Click Bunker check and pick ${c.n}'s file.`;return}
+   ghosts=gs;
    gfile=file.name;cb.setAttribute('aria-pressed','true');cb.textContent='Bunker check on';render();
    const miss=ghosts.filter(g=>!g.f).length,sh=(d.course_shift_e||d.course_shift_n)?` Set the whole-course shift in the tool's CFS Alignment Viewer: E/W ${(+d.course_shift_e).toFixed(1)}, N/S ${(+d.course_shift_n).toFixed(1)} (the ghosts allow for it).`:'';
-   st.textContent=`Bunker check: ${ghosts.length} bunker${ghosts.length==1?'':'s'} to move onto their dashed outlines (pink). Drag each bunker onto its outline; it disappears when the bunker is on it.`+sh+(miss?` ${miss} couldn't be matched to a bunker here (moved already, or a different file?).`:'');
+   st.textContent=`Bunker check: ${gh_left} bunker${gh_left==1?'':'s'} to move onto their dashed outlines (pink). Drag each bunker onto its outline; it disappears when the bunker is on it.`+sh+(miss?` ${miss} couldn't be matched to a bunker here (moved already, or a different file?).`:'');
    const b=L.latLngBounds(ghosts.flatMap(g=>g.outline));if(b.isValid()&&!map.getBounds().intersects(b))map.fitBounds(b,{padding:[40,40]})};
   const cpick=document.createElement('input');cpick.type='file';cpick.accept='.json';cpick.hidden=true;$b('dfeat').append(cpick);
   cpick.onchange=()=>{if(cpick.files[0])useCheck(cpick.files[0])};
-  cb.onclick=async()=>{if(ghosts){const on=cb.getAttribute('aria-pressed')!='true';cb.setAttribute('aria-pressed',on);cb.textContent=on?'Bunker check on':'Bunker check off';render();if(on)st.textContent=`Bunker check: ${gh_left} left to move.`;return}
+  // Clicking it while on clears the ghosts and forgets the file, so the next click picks a file again (owner, Nov 25 2026)
+  cb.onclick=async()=>{if(ghosts){const left=gh_left;ghosts=null;gfile='';cb.setAttribute('aria-pressed','false');cb.textContent='Bunker check';render();
+    st.textContent=`Bunker check cleared${left?` (${left} bunker${left==1?'':'s'} were still off)`:''}. Click Bunker check to load a file again.`;return}
    if(window.showOpenFilePicker&&!plain){let fh;
     try{[fh]=await showOpenFilePicker({id:'okw-tgc-export',types:[{description:'Bunker check',accept:{'application/json':['.json']}}]})}catch(e){if(e.name=='AbortError')return;fh=null}
     if(fh){try{useCheck(await fh.getFile())}catch{plain=true;st.textContent="This browser wouldn't open the file that way. Click Bunker check again and pick it in the ordinary file window."}return}}
