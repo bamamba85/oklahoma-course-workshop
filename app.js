@@ -192,7 +192,9 @@ const SHAPE_STYLE={driving_range:{fillColor:'rgb(200,235,120)',fillOpacity:.27,c
 const NAIP='https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
 function imagery(map,max){const u=L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:max,attribution:'USGS'}).addTo(map);
  const N=L.TileLayer.extend({getTileUrl(c){const W=20037508.342789244,s=2*W/2**c.z,x=-W+c.x*s,y=W-c.y*s;
-  return `${NAIP}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpg&f=image`}});
+  // format=jpgpng (Nov 24 2026): for some exact tiles the service answers format=jpg with a solid black picture every
+  // time (Jimmie Austin: 3 of 49 zoom-17 tiles); the same tile as jpgpng is fine, and gaps come back see-through
+  return `${NAIP}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image`}});
  new N('',{minZoom:17,maxNativeZoom:18,maxZoom:max,attribution:'USGS NAIP'}).addTo(map);return u}
 function shapeLayer(g,pane){const order=Object.keys(SHAPE_STYLE),fs=g.features.filter(f=>SHAPE_STYLE[f.properties.kind]&&/Polygon/.test(f.geometry.type)).sort((a,b)=>order.indexOf(a.properties.kind)-order.indexOf(b.properties.kind));
  return L.geoJSON({type:'FeatureCollection',features:fs},{pane,interactive:false,style:f=>({...SHAPE_STYLE[f.properties.kind],opacity:1})})}
