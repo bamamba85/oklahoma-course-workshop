@@ -26,6 +26,16 @@ function okwFeatures(D){
  map.createPane('feat').style.zIndex=380;
  const lay=L.layerGroup().addTo(map);
  let mode=null,pts=[],sel=-1,dsel=-1,joining=false,skipClick=false,nudge=null;
+ // stacking order, bottom to top (owner, Nov 24 2026): buildings, creeks/water, rough, range, fairway, paths, tees, bunkers, greens
+ const RANK={power:9,building:0,clubhouse:0,creek:1,water:1,rough:2,driving_range:3,fairway:4,path:5,cartpath:5,tee:6,bunker:7,green:8};
+ // Alt+click picks the shape underneath (owner, Nov 25 2026: Oak Tree East has grass islands inside a bunker that the
+ // bunker covers): every shape under the pointer, top first; each Alt+click selects the next one down, then wraps.
+ function pickUnder(ll){const P=[ll.lat,ll.lng],k=Math.cos(ll.lat*Math.PI/180);
+  const inside=g=>{let c=false;for(let i=0,j=g.length-1;i<g.length;j=i++){const a=g[i],b=g[j];if((a[0]>P[0])!=(b[0]>P[0])&&P[1]<(b[1]-a[1])*(P[0]-a[0])/(b[0]-a[0])+a[1])c=!c}return c};
+  const near=g=>g.some((a,i)=>{if(!i)return false;const b=g[i-1],ax=(a[1]-P[1])*k*111320,ay=(a[0]-P[0])*110540,bx=(b[1]-P[1])*k*111320,by=(b[0]-P[0])*110540,dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/L2));return Math.hypot(ax+t*dx,ay+t*dy)<3});
+  const hit=F.map((f,i)=>i).filter(i=>{const f=F[i],g=sm(f.k,f.g);return K[f.k].line?near(g):inside(g)}).sort((a,b)=>(RANK[F[b].k]??9)-(RANK[F[a].k]??9)||b-a);
+  if(!hit.length)return false;const at=hit.indexOf(sel),next=hit[at<0?(hit.length>1?1:0):(at+1)%hit.length];
+  sel=next;dsel=-1;joining=false;render();st.textContent=`${K[F[sel].k].t} selected (${hit.indexOf(sel)+1} of ${hit.length} shapes here; Alt+click again for the next one down). `+st.textContent.replace(/^[^.]*selected[^.]*\. /,'');return true}
  // how far the selected shape has been moved (drag or arrow keys), in metres, shown on the status line
  const moved=(dla,dlo)=>{const n=dla*110540,e=dlo*111320*Math.cos((F[sel]?.g[0]?.[0]||35)*Math.PI/180);
   st.textContent=`Moved ${Math.abs(e).toFixed(1)} m ${e>=0?'east':'west'}, ${Math.abs(n).toFixed(1)} m ${n>=0?'north':'south'}. Undo puts it back.`};
@@ -105,23 +115,22 @@ function okwFeatures(D){
   // stacked by type, not drawing order (owner, Nov 24 2026: couldn't click hole 9's green under its fairway):
   // big shapes at the bottom so greens, tees and bunkers inside them can always be clicked
   // owner's order, bottom to top (Nov 24 2026): buildings/clubhouse, creeks/water, fairway, paths, tees, bunkers, greens
-  const RANK={power:9,building:0,clubhouse:0,creek:1,water:1,rough:2,driving_range:3,fairway:4,path:5,cartpath:5,tee:6,bunker:7,green:8};
   // a shape keeps only his clicked dots (g); the smooth curve through them is drawn here and saved by Save for TGC
   // (owner, Nov 24 2026: "too many points")
   F.map((f,i)=>i).sort((a,b)=>(RANK[F[a].k]??9)-(RANK[F[b].k]??9)||a-b).forEach(i=>{const f=F[i];if(i==sel)return;const v=K[f.k];const s={...sty(f.k),pane:'feat'};
-   const g=v.line?L.polyline(sm(f.k,f.g),s):L.polygon(sm(f.k,f.g),s);g.on('click',e=>{L.DomEvent.stopPropagation(e);if(joining){join(i);return}if(mode||D.placing()||extending()){if(D.placing()&&!mode&&!extending())return;click(e.latlng);return}sel=i;dsel=-1;render()});g.addTo(lay)});
+   const g=v.line?L.polyline(sm(f.k,f.g),s):L.polygon(sm(f.k,f.g),s);g.on('click',e=>{L.DomEvent.stopPropagation(e);if(e.originalEvent.altKey&&!mode&&!D.placing()&&!joining&&pickUnder(e.latlng))return;if(joining){join(i);return}if(mode||D.placing()||extending()){if(D.placing()&&!mode&&!extending())return;click(e.latlng);return}sel=i;dsel=-1;render()});g.addTo(lay)});
   if(sel>=0){const f=F[sel],v=K[f.k],s={...sty(f.k),pane:'feat',weight:(sty(f.k).weight||2)+2,color:'#FFD84A'};
    const g=v.line?L.polyline(sm(f.k,f.g),s):L.polygon(sm(f.k,f.g),s);
    // move the whole shape (owner, Nov 25 2026): press inside the selected shape (or on its line) and drag; the map
    // stays still. A click without dragging still adds a dot on the edge.
-   g.on('mousedown',e=>{if(mode||joining||extending()||e.originalEvent.button)return;L.DomEvent.stopPropagation(e);map.dragging.disable();
+   g.on('mousedown',e=>{if(mode||joining||extending()||e.originalEvent.button||e.originalEvent.altKey)return;L.DomEvent.stopPropagation(e);map.dragging.disable();
     const p0=map.mouseEventToContainerPoint(e.originalEvent),ll0=e.latlng,orig=f.g.map(q=>q.slice());let moving=false;
     const mv=ev=>{if(!moving&&p0.distanceTo(ev.containerPoint)<4)return;if(!moving){moving=true;snap();lay.eachLayer(l=>{if(l instanceof L.Marker)l.setOpacity(0)})}
      const dla=ev.latlng.lat-ll0.lat,dlo=ev.latlng.lng-ll0.lng;f.g=orig.map(q=>[q[0]+dla,q[1]+dlo]);g.setLatLngs(sm(f.k,f.g));moved(dla,dlo)};
     const up=()=>{map.off('mousemove',mv);document.removeEventListener('mouseup',up);map.dragging.enable();
      if(moving){f.ed=1;skipClick=true;setTimeout(()=>skipClick=false,0);save();const t=st.textContent;render();st.textContent=t}};
     map.on('mousemove',mv);document.addEventListener('mouseup',up)});
-   g.on('click',e=>{L.DomEvent.stopPropagation(e);if(skipClick)return;if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}
+   g.on('click',e=>{L.DomEvent.stopPropagation(e);if(skipClick)return;if(e.originalEvent.altKey&&!mode&&!joining&&pickUnder(e.latlng))return;if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}
     // add a dot on the nearest edge
     const pt=map.latLngToLayerPoint(e.latlng),n=f.g.length,ring=!v.line;let best=1,bd=1e18;
     for(let j=1;j<=(ring?n:n-1);j++){const a=f.g[j-1],b=f.g[j%n];const d=L.LineUtil.pointToSegmentDistance(pt,map.latLngToLayerPoint(a),map.latLngToLayerPoint(b));if(d<bd){bd=d;best=j}}
