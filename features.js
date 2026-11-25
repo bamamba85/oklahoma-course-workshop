@@ -25,7 +25,10 @@ function okwFeatures(D){
  const F=mine.f=mine.f||[];
  map.createPane('feat').style.zIndex=380;
  const lay=L.layerGroup().addTo(map);
- let mode=null,pts=[],sel=-1,dsel=-1,joining=false;
+ let mode=null,pts=[],sel=-1,dsel=-1,joining=false,skipClick=false,nudge=null;
+ // how far the selected shape has been moved (drag or arrow keys), in metres, shown on the status line
+ const moved=(dla,dlo)=>{const n=dla*110540,e=dlo*111320*Math.cos((F[sel]?.g[0]?.[0]||35)*Math.PI/180);
+  st.textContent=`Moved ${Math.abs(e).toFixed(1)} m ${e>=0?'east':'west'}, ${Math.abs(n).toFixed(1)} m ${n>=0?'north':'south'}. Undo puts it back.`};
  function delDot(){if(sel<0||dsel<0)return;const f=F[sel];
   if(f.g.length<=(K[f.k].line?2:3)){st.textContent='That is the fewest dots this shape can have. Use Delete shape to remove it.';return}
   snap();f.g.splice(dsel,1);f.ed=1;dsel=-1;save();render()}
@@ -90,7 +93,7 @@ function okwFeatures(D){
  {const u=document.createElement('button');u.className='btn';u.id='fundo';u.type='button';u.title='Undo the last shape click (Ctrl+Z)';u.textContent='Undo';$b('dlines').after(u)}
  const count=()=>{const n={};F.forEach(f=>n[f.k]=(n[f.k]||0)+1);return Object.entries(n).map(([k,v])=>`${v} ${K[k].t.toLowerCase()}${v>1&&k!='water'?'s':''}`).join(', ')};
  function hint(){if(mode){const v=K[mode],need=v.line?2:3;st.textContent=`${v.t}: click points around it`+(pts.length>=need?(v.line?'. Click Finish (or Enter) at the end.':'. Click the first point (or Enter) to close it.'):'.')+' Backspace removes the last point, Esc cancels.';return}
-  if(sel>=0){const f=F[sel];st.textContent=`${K[f.k].t} selected${f.o?' (from OpenStreetMap)':''}. `+(joining?`Now click the ${K[f.k].t.toLowerCase()} to join onto this one. Esc or click the map to stop.`:extending()?'End picked: click the map to carry the line on from here. Esc or click the red dot to stop; Delete removes it.':dsel>=0?'Dot picked: press Delete to remove it, drag it'+(K[f.k].line?', or Split here to cut the line in two there.':'.'):K[f.k].line?`Drag its dots to adjust, click an END dot to carry the line on, click a dot then Delete to remove it or Split here to cut the line there (click the line to add a dot). ${f.g.length} dots.`:`Drag its dots to adjust, click its edge to add a dot, click a dot then Delete (or right-click it) to remove it. ${f.g.length} dots.`);return}
+  if(sel>=0){const f=F[sel];st.textContent=`${K[f.k].t} selected${f.o?' (from OpenStreetMap)':''}. `+(joining?`Now click the ${K[f.k].t.toLowerCase()} to join onto this one. Esc or click the map to stop.`:extending()?'End picked: click the map to carry the line on from here. Esc or click the red dot to stop; Delete removes it.':dsel>=0?'Dot picked: press Delete to remove it, drag it'+(K[f.k].line?', or Split here to cut the line in two there.':'.'):K[f.k].line?`Drag inside it to move it whole (arrow keys nudge 0.25 m, Shift 1 m). Drag its dots to adjust, click an END dot to carry the line on, click a dot then Delete to remove it or Split here to cut the line there (click the line to add a dot). ${f.g.length} dots.`:`Drag inside it to move it whole (arrow keys nudge 0.25 m, Shift 1 m). Drag its dots to adjust, click its edge to add a dot, click a dot then Delete (or right-click it) to remove it. ${f.g.length} dots.`);return}
   st.textContent=F.length?`Shapes drawn: ${count()}. Pick a shape type to draw another, or click a shape to edit it.`:'Pick a shape type (Green, Fairway ...) and click points around it on the photo.'}
  // the type being drawn, or the selected shape's type, is highlighted (owner, Nov 24 2026)
  function buttons(){const on=mode||(sel>=0?F[sel]?.k:null);row.querySelectorAll('.fk').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k==on));
@@ -109,7 +112,16 @@ function okwFeatures(D){
    const g=v.line?L.polyline(sm(f.k,f.g),s):L.polygon(sm(f.k,f.g),s);g.on('click',e=>{L.DomEvent.stopPropagation(e);if(joining){join(i);return}if(mode||D.placing()||extending()){if(D.placing()&&!mode&&!extending())return;click(e.latlng);return}sel=i;dsel=-1;render()});g.addTo(lay)});
   if(sel>=0){const f=F[sel],v=K[f.k],s={...sty(f.k),pane:'feat',weight:(sty(f.k).weight||2)+2,color:'#FFD84A'};
    const g=v.line?L.polyline(sm(f.k,f.g),s):L.polygon(sm(f.k,f.g),s);
-   g.on('click',e=>{L.DomEvent.stopPropagation(e);if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}
+   // move the whole shape (owner, Nov 25 2026): press inside the selected shape (or on its line) and drag; the map
+   // stays still. A click without dragging still adds a dot on the edge.
+   g.on('mousedown',e=>{if(mode||joining||extending()||e.originalEvent.button)return;L.DomEvent.stopPropagation(e);map.dragging.disable();
+    const p0=map.mouseEventToContainerPoint(e.originalEvent),ll0=e.latlng,orig=f.g.map(q=>q.slice());let moving=false;
+    const mv=ev=>{if(!moving&&p0.distanceTo(ev.containerPoint)<4)return;if(!moving){moving=true;snap();lay.eachLayer(l=>{if(l instanceof L.Marker)l.setOpacity(0)})}
+     const dla=ev.latlng.lat-ll0.lat,dlo=ev.latlng.lng-ll0.lng;f.g=orig.map(q=>[q[0]+dla,q[1]+dlo]);g.setLatLngs(sm(f.k,f.g));moved(dla,dlo)};
+    const up=()=>{map.off('mousemove',mv);document.removeEventListener('mouseup',up);map.dragging.enable();
+     if(moving){f.ed=1;skipClick=true;setTimeout(()=>skipClick=false,0);save();const t=st.textContent;render();st.textContent=t}};
+    map.on('mousemove',mv);document.addEventListener('mouseup',up)});
+   g.on('click',e=>{L.DomEvent.stopPropagation(e);if(skipClick)return;if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}
     // add a dot on the nearest edge
     const pt=map.latLngToLayerPoint(e.latlng),n=f.g.length,ring=!v.line;let best=1,bd=1e18;
     for(let j=1;j<=(ring?n:n-1);j++){const a=f.g[j-1],b=f.g[j%n];const d=L.LineUtil.pointToSegmentDistance(pt,map.latLngToLayerPoint(a),map.latLngToLayerPoint(b));if(d<bd){bd=d;best=j}}
@@ -207,10 +219,15 @@ function okwFeatures(D){
    g=[...dp(f.g.slice(0,far+1),fewTol).slice(0,-1),...dp([...f.g.slice(far),f.g[0]],fewTol).slice(0,-1)]}
   if(g.length<min||g.length==n){st.textContent=g.length==n?`No dots to spare at ${fewTol} m; press again to allow more.`:'Too few dots would be left.';fewTol*=2;return}
   snap();f.g=g;f.ed=1;dsel=-1;save();render();st.textContent=`Fewer dots: ${n} → ${g.length} (within ${fewTol} m). Press again for fewer, or Undo.`;fewTol*=2};
- map.on('click',e=>{if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}if(sel>=0){sel=-1;dsel=-1;render()}});
+ map.on('click',e=>{if(skipClick)return;if(joining){joining=false;render();return}if(mode||extending()){click(e.latlng);return}if(sel>=0){sel=-1;dsel=-1;render()}});
  addEventListener('keydown',e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='z'){undo();e.preventDefault();e.stopImmediatePropagation();return}
   if(mode){if(e.key=='Escape'){cancel();e.stopImmediatePropagation()}else if(e.key=='Enter'){finish();e.preventDefault()}else if(e.key=='Backspace'){pts.pop();render();e.preventDefault()}return}
+  // arrow keys nudge the selected shape (owner, Nov 25 2026): 0.25 m a press, Shift 1 m; a burst of presses is one Undo
+  if(sel>=0&&/^Arrow(Up|Down|Left|Right)$/.test(e.key)){e.preventDefault();e.stopImmediatePropagation();const f=F[sel],m=e.shiftKey?1:.25;
+   const dla=(e.key=='ArrowUp'?m:e.key=='ArrowDown'?-m:0)/110540,dlo=(e.key=='ArrowRight'?m:e.key=='ArrowLeft'?-m:0)/(111320*Math.cos(f.g[0][0]*Math.PI/180));
+   const now=Date.now();if(!nudge||nudge.sel!=sel||now-nudge.t>1500){snap();nudge={sel,la:0,lo:0}}nudge.t=now;nudge.la+=dla;nudge.lo+=dlo;
+   f.g=f.g.map(q=>[q[0]+dla,q[1]+dlo]);f.ed=1;save();render();moved(nudge.la,nudge.lo);return}
   if(sel>=0){if(e.key=='Escape'){if(joining)joining=false;else if(dsel>=0)dsel=-1;else sel=-1;render()}
    else if(e.key=='Delete'||e.key=='Backspace'){e.preventDefault();if(dsel>=0)delDot();else if(e.key=='Delete'){del();if(armed)del()}}}},true);
  // which shape type an OpenStreetMap feature is (null = not one we draw)
