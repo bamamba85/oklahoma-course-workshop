@@ -37,8 +37,15 @@ function okwFeatures(D){
   if(!hit.length)return false;const at=hit.indexOf(sel),next=hit[at<0?(hit.length>1?1:0):(at+1)%hit.length];
   sel=next;dsel=-1;joining=false;render();st.textContent=`${K[F[sel].k].t} selected (${hit.indexOf(sel)+1} of ${hit.length} shapes here; Alt+click again for the next one down). `+st.textContent.replace(/^[^.]*selected[^.]*\. /,'');return true}
  // how far the selected shape has been moved (drag or arrow keys), in metres, shown on the status line
+ // also shown on the map just above the shape (owner, Nov 25 2026: looked for it at the bottom; the message line is
+ // at the top), fading 4 s after the last move
+ let tip=null,tipT=0;
  const moved=(dla,dlo)=>{const n=dla*110540,e=dlo*111320*Math.cos((F[sel]?.g[0]?.[0]||35)*Math.PI/180);
-  st.textContent=`Moved ${Math.abs(e).toFixed(1)} m ${e>=0?'east':'west'}, ${Math.abs(n).toFixed(1)} m ${n>=0?'north':'south'}. Undo puts it back.`};
+  const txt=`${Math.abs(e).toFixed(1)} m ${e>=0?'east':'west'}, ${Math.abs(n).toFixed(1)} m ${n>=0?'north':'south'}`;
+  st.textContent=`Moved ${txt}. Undo puts it back.`;
+  if(sel>=0){const b=L.latLngBounds(F[sel].g),at=L.latLng(b.getNorth(),b.getCenter().lng);
+   if(!tip)tip=L.tooltip({permanent:true,direction:'top',offset:[0,-8],className:'movetip',interactive:false});
+   tip.setLatLng(at).setContent('Moved '+txt);if(!map.hasLayer(tip))tip.addTo(map);clearTimeout(tipT);tipT=setTimeout(()=>{if(tip)map.removeLayer(tip)},4000)}};
  function delDot(){if(sel<0||dsel<0)return;const f=F[sel];
   if(f.g.length<=(K[f.k].line?2:3)){st.textContent='That is the fewest dots this shape can have. Use Delete shape to remove it.';return}
   snap();f.g.splice(dsel,1);f.ed=1;dsel=-1;save();render()}
