@@ -7,7 +7,10 @@
 function okwFeatures(D){
  const {map,c,slug,mine,save,st}=D,$b=id=>document.getElementById(id);
  // listed (and so the buttons ordered) like the stacking, bottom to top (owner, Nov 24 2026)
- const K={building:{t:'Building',tags:{building:'yes'},sty:{fillColor:'#8A8A8A',fillOpacity:.6,color:'#EEE',weight:2}},
+ // power lines (owner, Nov 24 2026): drawn nowhere in the game, but TGC Designer Tools (his copy) keeps LiDAR "trees"
+ // off them; the wires show up in the LiDAR as a row of trees
+ const K={power:{t:'Power line',line:1,tags:{power:'minor_line'},sty:{color:'#FF4FD8',weight:2,opacity:.95,dashArray:'8 4 2 4'}},
+  building:{t:'Building',tags:{building:'yes'},sty:{fillColor:'#8A8A8A',fillOpacity:.6,color:'#EEE',weight:2}},
   clubhouse:{t:'Clubhouse',tags:{building:'yes',golf:'clubhouse'},sty:{fillColor:'#B04A3A',fillOpacity:.6,color:'#FFE0D8',weight:2}},
   creek:{t:'Creek',line:1,tags:{waterway:'stream'},sty:{color:'#3C8DDC',weight:4,opacity:.95}},
   water:{t:'Water',tags:{natural:'water'},sty:{fillColor:'#3C8DDC',fillOpacity:.45,color:'#BFE3FF',weight:2}},
@@ -38,7 +41,7 @@ function okwFeatures(D){
  // buttons top-of-stack first (owner, Nov 24 2026): Green, Bunker, Tee ... Building
  row.innerHTML='<span class="flab">Shapes:</span>'+Object.entries(K).reverse().map(([k,v])=>`<button class="btn fk" type="button" data-k="${k}"><i style="background:${v.line?sty(k).color:sty(k).fillColor};border-color:${sty(k).color}"></i>${v.t}</button>`).join('')
   +'<button class="btn" id="fdone" type="button" hidden>Finish shape</button><button class="btn" id="fsm" type="button" hidden title="Even out the dots of the selected shape so bumps flatten; no dots added (Undo puts it back)">Smooth</button><button class="btn" id="ffew" type="button" hidden title="Thin out dots that add little to the selected shape (Undo puts them back)">Fewer dots</button><button class="btn" id="fjoin" type="button" hidden title="Then click another line of the same type: the two become one line, joined at their nearest ends">Join</button><button class="btn" id="fjall" type="button" hidden title="Join every piece of this line type whose end touches the end of another piece (within 3 m)">Join all touching</button><button class="btn" id="fsplit" type="button" hidden title="Cut the line in two at the picked (red) dot">Split here</button><button class="btn" id="fdel" type="button" hidden>Delete shape</button>'
-  +'<span class="fsp"></span><button class="btn" id="fopen" type="button">Open .osm file</button><button class="btn" id="fload" type="button">Load OSM shapes</button><button class="btn go" id="ftgc" type="button">Save for TGC</button>';
+  +'<span class="fsp"></span><button class="btn" id="fwire" type="button" title="Pick your TGC build (.course): finds overhead wires from the straight rows of LiDAR trees they leave, and adds them here as power lines">Check wires</button><button class="btn" id="fopen" type="button">Open .osm file</button><button class="btn" id="fload" type="button">Load OSM shapes</button><button class="btn go" id="ftgc" type="button">Save for TGC</button>';
  // Shapes on/off: his traced shapes (owner, Nov 24 2026); the guide's background shapes have their own Background button
  {const sb=$b('dshp');sb.hidden=false;sb.title='Your traced shapes';
   sb.onclick=()=>{const was=sb.getAttribute('aria-pressed')!='false';
@@ -60,7 +63,7 @@ function okwFeatures(D){
   // stacked by type, not drawing order (owner, Nov 24 2026: couldn't click hole 9's green under its fairway):
   // big shapes at the bottom so greens, tees and bunkers inside them can always be clicked
   // owner's order, bottom to top (Nov 24 2026): buildings/clubhouse, creeks/water, fairway, paths, tees, bunkers, greens
-  const RANK={building:0,clubhouse:0,creek:1,water:1,rough:2,driving_range:3,fairway:4,path:5,cartpath:5,tee:6,bunker:7,green:8};
+  const RANK={power:9,building:0,clubhouse:0,creek:1,water:1,rough:2,driving_range:3,fairway:4,path:5,cartpath:5,tee:6,bunker:7,green:8};
   // a shape keeps only his clicked dots (g); the smooth curve through them is drawn here and saved by Save for TGC
   // (owner, Nov 24 2026: "too many points")
   F.map((f,i)=>i).sort((a,b)=>(RANK[F[a].k]??9)-(RANK[F[b].k]??9)||a-b).forEach(i=>{const f=F[i];if(i==sel)return;const v=K[f.k];const s={...sty(f.k),pane:'feat'};
@@ -98,7 +101,7 @@ function okwFeatures(D){
     const A1=L(p0,p1,t0,t1),A2=L(p1,p2,t1,t2),A3=L(p2,p3,t2,t3),B1=L(A1,A2,t0,t2),B2=L(A2,A3,t1,t3);out.push(L(B1,B2,t1,t2))}}
   if(ln)out.push(g[n-1]);return out}
  // buildings and the clubhouse keep straight walls (owner, Nov 24 2026): no smoothing for them
- const sharp=k=>k=='building'||k=='clubhouse',sm=(k,g)=>sharp(k)?g.slice():smooth(g,K[k].line);
+ const sharp=k=>k=='building'||k=='clubhouse'||k=='power',sm=(k,g)=>sharp(k)?g.slice():smooth(g,K[k].line);
  // extend a line (owner, Nov 24 2026): select a path or creek, click one of its END dots (it turns red), then each map
  // click adds a dot beyond that end; Esc or clicking the red dot again stops
  function extending(){return !mode&&sel>=0&&!!K[F[sel]?.k]?.line&&(dsel==0||dsel==F[sel].g.length-1)}
@@ -136,7 +139,7 @@ function okwFeatures(D){
  // with a shape selected, another type of the same sort (line <-> line, area <-> area) changes it (owner, Nov 24 2026:
  // walking path -> cart path); otherwise the button starts drawing a new shape of that type
  row.querySelectorAll('.fk').forEach(b=>b.onclick=()=>{const k=b.dataset.k;
-  if(!mode&&sel>=0&&F[sel].k!=k&&!!K[F[sel].k].line==!!K[k].line){const f=F[sel],was=K[f.k].t;snap();f.k=k;delete f.t;f.ed=1;dsel=-1;save();render();
+  if(!mode&&sel>=0&&F[sel].k!=k&&!!K[F[sel].k].line==!!K[k].line&&k!='power'&&F[sel].k!='power'){const f=F[sel],was=K[f.k].t;snap();f.k=k;delete f.t;f.ed=1;dsel=-1;save();render();
    st.textContent=`Changed ${was} to ${K[k].t}. Undo changes it back.`;return}
   start(k)});
  $b('fdone').onclick=()=>finish();
@@ -172,7 +175,7 @@ function okwFeatures(D){
   if(sel>=0){if(e.key=='Escape'){if(joining)joining=false;else if(dsel>=0)dsel=-1;else sel=-1;render()}
    else if(e.key=='Delete'||e.key=='Backspace'){e.preventDefault();if(dsel>=0)delDot();else if(e.key=='Delete'){del();if(armed)del()}}}},true);
  // which shape type an OpenStreetMap feature is (null = not one we draw)
- const kind=tg=>{const g=tg.golf;
+ const kind=tg=>{const g=tg.golf;if(tg.power=='line'||tg.power=='minor_line')return 'power';
   if(g=='clubhouse')return 'clubhouse';if(['green','fairway','tee','bunker','driving_range','rough'].includes(g))return g;if(g=='water_hazard'||g=='lateral_water_hazard'||tg.natural=='water')return 'water';
   if(g=='cartpath')return 'cartpath';if(g=='path')return 'path';if(tg.building)return 'building';
   // creeks and plain paths (owner, Nov 24 2026), read the way TGC Designer Tools does: a waterway line is water;
@@ -230,10 +233,68 @@ function okwFeatures(D){
  $b('frep').onclick=()=>{const p=pendOpen;unaskOpen();if(p)applyOpen(p.file,p.gotH,p.gotS,p.skip,true)};
  $b('fadd').onclick=()=>{const p=pendOpen;unaskOpen();if(p)applyOpen(p.file,p.gotH,p.gotS,p.skip,false)};
  $b('fcan').onclick=()=>{unaskOpen();st.textContent='Nothing opened; your shapes are as they were.'};
+ // Check wires (owner, Nov 24 2026; same method as Build Kit/check_wires.py): read his TGC build (.course), line it up
+ // with the hole lines here (game tee/pin vs drawn tee/green), and find dead-straight rows of LiDAR trees about 2-3 m
+ // apart: overhead wires the tool turned into trees. Each new row is added as a Power line (his tool then keeps trees
+ // off it on the next import). Undo takes them off again.
+ const wpick=document.createElement('input');wpick.type='file';wpick.accept='.course';wpick.hidden=true;row.append(wpick);
+ $b('fwire').onclick=async()=>{if(window.showOpenFilePicker&&!plain){let fh;
+   try{[fh]=await showOpenFilePicker({id:'okw-tgc-export',types:[{description:'TGC course',accept:{'application/octet-stream':['.course']}}]})}catch(e){if(e.name=='AbortError')return;fh=null}
+   if(fh){let file;try{file=await fh.getFile()}catch{plain=true;st.textContent="This browser wouldn't open the file that way. Click Check wires again and pick it in the ordinary file window.";return}
+    checkWires(file);return}}
+  wpick.value='';wpick.click()};
+ wpick.onchange=()=>{if(wpick.files[0])checkWires(wpick.files[0])};
+ const gunzip=async buf=>new Uint8Array(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+ const utxt=b=>new TextDecoder(b[1]===0?'utf-16le':'utf-8').decode(b);
+ async function checkWires(file){const b=$b('fwire');b.disabled=true;st.textContent=`Reading ${file.name}…`;
+  try{
+   const top=JSON.parse(utxt(await gunzip(await file.arrayBuffer())));
+   const raw=Uint8Array.from(atob(top.binaryData.CourseDescription),ch=>ch.charCodeAt(0));
+   const j=JSON.parse(utxt(await gunzip(raw)));
+   // line up: local metres around the course
+   const pts=Object.values(D.R).flat();if(!pts.length)throw 'This course has no hole lines here to line the build up with.';
+   const lat0=pts.reduce((s,p)=>s+p[0],0)/pts.length,lon0=pts.reduce((s,p)=>s+p[1],0)/pts.length,kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
+   const loc=p=>[(p[1]-lon0)*kx,(p[0]-lat0)*ky],unloc=q=>[lat0+q[1]/ky,lon0+q[0]/kx];
+   const G=[],U=[];(j.holes3||[]).forEach((h,i)=>{const w=h.waypoints||[],r=D.R[i+1];if(w.length>=2&&r&&r.length>=2){G.push([w[0].x,w[0].z],[w.at(-1).x,w.at(-1).z]);U.push(loc(r[0]),loc(r.at(-1)))}});
+   if(G.length<4)throw 'Not enough holes in both the build and this map to line them up.';
+   let best=null;for(const fl of [1,-1]){const g=G.map(p=>[p[0],p[1]*fl]),gm=[0,1].map(k=>g.reduce((s,p)=>s+p[k],0)/g.length),um=[0,1].map(k=>U.reduce((s,p)=>s+p[k],0)/U.length);
+    let sxx=0,sxy=0,aa=0;g.forEach((p,i)=>{const ax=p[0]-gm[0],ay=p[1]-gm[1],bx=U[i][0]-um[0],by=U[i][1]-um[1];sxx+=ax*bx+ay*by;sxy+=ax*by-ay*bx;aa+=ax*ax+ay*ay});
+    const th=Math.atan2(sxy,sxx),sc=Math.hypot(sxx,sxy)/aa,c=Math.cos(th),s=Math.sin(th);
+    const f=p=>{const ax=p[0]-gm[0],ay=p[1]*fl-gm[1];return [sc*(c*ax-s*ay)+um[0],sc*(s*ax+c*ay)+um[1]]};
+    const err=G.reduce((e,p,i)=>{const q=f(p);return e+Math.hypot(q[0]-U[i][0],q[1]-U[i][1])},0)/G.length;if(!best||err<best.err)best={f,err}}
+   if(best.err>8)throw `The build doesn't line up with the holes here (off by ${best.err.toFixed(0)} m on average). Is it this course's build?`;
+   const T=[];for(const o of j.placedObjects4||[])for(const it of o.Value.items||[])T.push(best.f([it.position.x,it.position.z]));
+   // rows: seeded random lines through pairs of trees; the line with most trees within 1.5 m, then checked for wire spacing
+   let seed=1;const rnd=()=>{seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};  // mulberry32
+   let left=T.map((_,i)=>i);const rows=[];
+   for(let pass=0;pass<8&&left.length>=20;pass++){let bestN=0,bestOn=null;
+    for(let it=0;it<15000;it++){const a=T[left[Math.floor(rnd()*left.length)]],c2=T[left[Math.floor(rnd()*left.length)]],dx=c2[0]-a[0],dy=c2[1]-a[1],L=Math.hypot(dx,dy);if(L<20||L>400)continue;
+     const nx=-dy/L,ny=dx/L;let n=0;for(const i of left)if(Math.abs((T[i][0]-a[0])*nx+(T[i][1]-a[1])*ny)<1.5)n++;
+     if(n>bestN){bestN=n;bestOn=[a,nx,ny]}}
+    if(bestN<20)break;const [a,nx,ny]=bestOn,on=left.filter(i=>Math.abs((T[i][0]-a[0])*nx+(T[i][1]-a[1])*ny)<1.5);
+    // refit the direction to the row (principal axis), order along it, keep the longest run without a 200 m gap
+    const m=[0,1].map(k=>on.reduce((s,i)=>s+T[i][k],0)/on.length);let sxx=0,syy=0,sxy=0;on.forEach(i=>{const x=T[i][0]-m[0],y=T[i][1]-m[1];sxx+=x*x;syy+=y*y;sxy+=x*y});
+    const ang=0.5*Math.atan2(2*sxy,sxx-syy),u=[Math.cos(ang),Math.sin(ang)],v=[-u[1],u[0]];
+    const tl=on.map(i=>[(T[i][0]-m[0])*u[0]+(T[i][1]-m[1])*u[1],i]).sort((p,q)=>p[0]-q[0]);
+    let runs=[[tl[0]]];for(let k=1;k<tl.length;k++){if(tl[k][0]-tl[k-1][0]>200)runs.push([]);runs.at(-1).push(tl[k])}const run=runs.reduce((p,q)=>q.length>p.length?q:p);
+    const gaps=run.slice(1).map((p,k)=>p[0]-run[k][0]).sort((p,q)=>p-q),spacing=gaps.length?gaps[Math.floor(gaps.length/2)]:99;
+    const offs=run.map(([,i])=>(T[i][0]-m[0])*v[0]+(T[i][1]-m[1])*v[1]),mo=offs.reduce((s,x)=>s+x,0)/offs.length,spread=Math.sqrt(offs.reduce((s,x)=>s+(x-mo)**2,0)/offs.length);
+    const t0=run[0][0]-5,t1=run.at(-1)[0]+5;
+    rows.push({n:run.length,len:t1-t0-10,spacing,spread,wire:run.length>=20&&spacing<4&&spread<0.5,ends:[[m[0]+u[0]*t0,m[1]+u[1]*t0],[m[0]+u[0]*t1,m[1]+u[1]*t1]]});
+    const used=new Set(on);left=left.filter(i=>!used.has(i))}
+   // skip rows already under a power line here
+   const have=F.filter(f=>f.k=='power').map(f=>f.g.map(loc));
+   const near=(p,line)=>{let d=1e9;for(let k=1;k<line.length;k++){const a=line[k-1],c2=line[k],dx=c2[0]-a[0],dy=c2[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2));d=Math.min(d,Math.hypot(a[0]+t*dx-p[0],a[1]+t*dy-p[1]))}return d};
+   const wires=rows.filter(r=>r.wire),fresh=wires.filter(r=>{const mid=[(r.ends[0][0]+r.ends[1][0])/2,(r.ends[0][1]+r.ends[1][1])/2];return !have.some(l=>near(mid,l)<6)});
+   if(fresh.length){snap();fresh.forEach(r=>F.push({k:'power',g:r.ends.map(unloc),s:3,t:{power:'minor_line',note:`found by Check wires in ${file.name}`}}));save();showShapes();render();
+    map.fitBounds(L.latLngBounds(fresh.flatMap(r=>r.ends.map(unloc))),{padding:[80,80],maxZoom:17})}
+   st.textContent=`${file.name}: ${T.length} trees, lined up within ${best.err.toFixed(1)} m. `+(wires.length?`Found ${wires.length} wire row${wires.length>1?'s':''} (`+wires.map(r=>`${r.n} trees over ${Math.round(r.len)} m`).join('; ')+`). `+(fresh.length?`Added ${fresh.length} as power line${fresh.length>1?'s':''} (pink dashed, shown now). Save for TGC, then reimport in the tool. Undo takes them off.`:'They already have power lines here.'):'No wire rows: no straight rows of trees 2-3 m apart.')}
+  catch(e){st.textContent=typeof e=='string'?e:`Couldn't read ${file.name} as a TGC course (${e.message||e}).`}
+  finally{b.disabled=false}}
  // Load OSM shapes: copy the course area's current OpenStreetMap shapes in (each once, by id) to edit and save with the rest.
  // Fairways drawn as multipolygons (outer/inner rings) come in as their outer rings only.
  $b('fload').onclick=async()=>{const b=$b('fload');b.disabled=true;st.textContent='Asking OpenStreetMap for this course\'s shapes…';
-  const bb=c.ob.join(','),q=`[out:json][timeout:50];(way["golf"~"^(green|fairway|tee|bunker|driving_range|rough|water_hazard|lateral_water_hazard|cartpath|path|clubhouse)$"](${bb});way["natural"="water"](${bb});way["building"](${bb});way["waterway"~"^(stream|ditch|drain|river|canal|brook)$"](${bb});way["highway"~"^(footway|path|track|pedestrian|cycleway|bridleway|steps)$"](${bb});way["highway"="service"]["golf_cart"](${bb});relation["golf"="fairway"](${bb});relation["natural"="water"](${bb}););out meta geom;`;
+  const bb=c.ob.join(','),q=`[out:json][timeout:50];(way["golf"~"^(green|fairway|tee|bunker|driving_range|rough|water_hazard|lateral_water_hazard|cartpath|path|clubhouse)$"](${bb});way["natural"="water"](${bb});way["building"](${bb});way["waterway"~"^(stream|ditch|drain|river|canal|brook)$"](${bb});way["highway"~"^(footway|path|track|pedestrian|cycleway|bridleway|steps)$"](${bb});way["highway"="service"]["golf_cart"](${bb});way["power"~"^(line|minor_line)$"](${bb});relation["golf"="fairway"](${bb});relation["natural"="water"](${bb}););out meta geom;`;
   let j;const stop=new AbortController(),t=setTimeout(()=>stop.abort(),60000);
   try{j=await Promise.any(OVERPASS.map(async u=>{const r=await fetch(u+'?data='+encodeURIComponent(q),{signal:stop.signal});if(!r.ok)throw 0;const x=await r.json();if(!x.elements)throw 0;return x}))}
   catch{st.textContent="Couldn't get an answer from OpenStreetMap. Its servers may be busy; try again in a few minutes.";b.disabled=false;return}finally{clearTimeout(t);stop.abort()}
@@ -280,5 +341,5 @@ function okwFeatures(D){
    f.s=3}
   save();if(n)setTimeout(()=>{st.textContent=`Thinned ${n} shape${n>1?'s':''} back to the dots you clicked; the smooth edge is drawn through them.`},50)}
  render();
- return {busy:()=>!!mode||extending()||joining,click,cancel};
+ return window.okwFeaturesApi={busy:()=>!!mode||extending()||joining,click,cancel,checkWires,openFile};
 }
