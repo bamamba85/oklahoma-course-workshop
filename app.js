@@ -195,7 +195,16 @@ function imagery(map,max){const u=L.tileLayer(USGS,{maxNativeZoom:16,maxZoom:max
   // format=jpgpng (Nov 24 2026): for some exact tiles the service answers format=jpg with a solid black picture every
   // time (Jimmie Austin: 3 of 49 zoom-17 tiles); the same tile as jpgpng is fine, and gaps come back see-through
   return `${NAIP}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image`}});
- new N('',{minZoom:17,maxNativeZoom:18,maxZoom:max,attribution:'USGS NAIP'}).addTo(map);return u}
+ // Nov 25 2026: jpgpng spoils other tiles the same way (Oak Tree East: one zoom-18 tile always purple, colour-infrared).
+ // So every photo tile is looked at as it arrives (USGS allows reading the pixels) and a black or purple one is asked
+ // for again as png, then jpg.
+ const nl=new N('',{minZoom:17,maxNativeZoom:18,maxZoom:max,attribution:'USGS NAIP',crossOrigin:'anonymous'}).addTo(map);
+ const cv=document.createElement('canvas');cv.width=cv.height=24;const cx=cv.getContext('2d',{willReadFrequently:true});
+ nl.on('tileload',e=>{const t=e.tile;let d;try{cx.clearRect(0,0,24,24);cx.drawImage(t,0,0,24,24);d=cx.getImageData(0,0,24,24).data}catch{return}
+  let dark=0,seen=0,rg=0,bg=0;for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;seen++;if(Math.max(d[i],d[i+1],d[i+2])<8)dark++;rg+=d[i]-d[i+1];bg+=d[i+2]-d[i+1]}
+  const bad=seen>50&&(dark>seen*.5||(rg/seen>15&&bg/seen>15)),n=+(t.dataset.okwTry||0);
+  if(bad&&n<2){t.dataset.okwTry=n+1;t.src=t.src.replace(/format=\w+/,'format='+(n?'jpg':'png'))}});
+ return u}
 function shapeLayer(g,pane){const order=Object.keys(SHAPE_STYLE),fs=g.features.filter(f=>SHAPE_STYLE[f.properties.kind]&&/Polygon/.test(f.geometry.type)).sort((a,b)=>order.indexOf(a.properties.kind)-order.indexOf(b.properties.kind));
  return L.geoJSON({type:'FeatureCollection',features:fs},{pane,interactive:false,style:f=>({...SHAPE_STYLE[f.properties.kind],opacity:1})})}
 function shapeKey(g){const k=L.control({position:'bottomleft'});k.onAdd=()=>{const d=L.DomUtil.create('div','skey');
