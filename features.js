@@ -53,12 +53,39 @@ function okwFeatures(D){
  {const DEM='https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage',rr=encodeURIComponent('{"rasterFunction":"Hillshade Gray"}');
   const G=L.TileLayer.extend({getTileUrl(c){const W=20037508.342789244,s=2*W/2**c.z,x=-W+c.x*s,y=W-c.y*s;
    return `${DEM}?bbox=${x},${y-s},${x+s},${y}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&renderingRule=${rr}&f=image`}});
-  const ground=new G('',{maxNativeZoom:19,maxZoom:23,zIndex:5,attribution:'USGS 3DEP LIDAR'});
+  // Nov 25 2026 (owner: "really blocky"): the shaded tiles take ~0.5-2 s each, so while they loaded the photo showed
+  // through in squares. Now a coarse shaded layer (zoom 15, quick) sits underneath as the fallback, and the photo
+  // layers are hidden while LIDAR view is on.
+  const ground=L.layerGroup([new G('',{maxNativeZoom:15,maxZoom:23,zIndex:4,keepBuffer:4}),new G('',{maxNativeZoom:19,maxZoom:23,zIndex:5,keepBuffer:4,attribution:'USGS 3DEP LIDAR'})]);
+  const parts=ground.getLayers(),photos=()=>{const o=[];map.eachLayer(l=>{if(l instanceof L.TileLayer&&!parts.includes(l))o.push(l)});return o};
   const gb=document.createElement('button');gb.className='btn';gb.id='dground';gb.type='button';gb.setAttribute('aria-pressed','false');
   gb.title='Show the LIDAR ground (shaded) instead of the photo: bunkers show as dips, greens and tees as raised shapes';gb.textContent='LIDAR view off';
   $b('dlines').after(gb);
   gb.onclick=()=>{const on=gb.getAttribute('aria-pressed')!='true';gb.setAttribute('aria-pressed',on);gb.textContent=on?'LIDAR view on':'LIDAR view off';
-   on?ground.addTo(map):map.removeLayer(ground)}}
+   on?ground.addTo(map):map.removeLayer(ground);photos().forEach(l=>l.setOpacity(on?0:1))}
+  // LIDAR picture (owner, Nov 25 2026): the course's own LIDAR intensity picture made by Build Kit/lidar_picture.py
+  // ("<course> lidar picture.png" in the course folder, its bounds stored inside the PNG as text "okw-bounds"). Same
+  // survey and position as the game ground. First click picks the file; then the button turns it on and off.
+  map.createPane('lidpic').style.zIndex=250;
+  let pic=null;const pb=document.createElement('button');pb.className='btn';pb.id='dlidpic';pb.type='button';pb.setAttribute('aria-pressed','false');
+  pb.title="Lay the course's LIDAR picture (made from its own .laz tiles by lidar_picture.py) under your shapes";pb.textContent='LIDAR picture';gb.after(pb);
+  const pngText=(buf,key)=>{const b=new Uint8Array(buf),dv=new DataView(buf);let i=8;
+   while(i+8<=b.length){const n=dv.getUint32(i),t=String.fromCharCode(...b.subarray(i+4,i+8));
+    if(t=='tEXt'){const d=b.subarray(i+8,i+8+n),z=d.indexOf(0);if(new TextDecoder('latin1').decode(d.subarray(0,z))==key)return new TextDecoder('latin1').decode(d.subarray(z+1))}
+    if(t=='IEND')break;i+=12+n}return null};
+  const ppick=document.createElement('input');ppick.type='file';ppick.accept='.png';ppick.hidden=true;$b('dfeat').append(ppick);
+  const usePic=async file=>{const buf=await file.arrayBuffer(),txt=pngText(buf,'okw-bounds');
+   if(!txt){st.textContent=`${file.name} has no position inside it. Pick the "… lidar picture.png" that lidar_picture.py made.`;return}
+   const m=JSON.parse(txt),bb=L.latLngBounds([[m.south,m.west],[m.north,m.east]]);
+   if(pic)map.removeLayer(pic);pic=L.imageOverlay(URL.createObjectURL(new Blob([buf],{type:'image/png'})),bb,{pane:'lidpic',interactive:false}).addTo(map);
+   pb.setAttribute('aria-pressed','true');pb.textContent='LIDAR picture on';
+   st.textContent=`LIDAR picture ${file.name} (${m.res_m} m a pixel, ${m.made}). Click the button to hide or show it.`+(map.getBounds().intersects(bb)?'':' It is not over this course: is it the right file?')};
+  ppick.onchange=()=>{if(ppick.files[0])usePic(ppick.files[0])};
+  pb.onclick=async()=>{if(pic){const on=pb.getAttribute('aria-pressed')!='true';pb.setAttribute('aria-pressed',on);pb.textContent=on?'LIDAR picture on':'LIDAR picture off';on?pic.addTo(map):map.removeLayer(pic);return}
+   if(window.showOpenFilePicker&&!plain){let fh;
+    try{[fh]=await showOpenFilePicker({id:'okw-tgc-export',types:[{description:'LIDAR picture',accept:{'image/png':['.png']}}]})}catch(e){if(e.name=='AbortError')return;fh=null}
+    if(fh){try{usePic(await fh.getFile())}catch{plain=true;st.textContent="This browser wouldn't open the file that way. Click LIDAR picture again and pick it in the ordinary file window."}return}}
+   ppick.value='';ppick.click()}}
  // Undo sits in the hole row, after Shapes on, away from Finish shape (owner, Nov 24 2026: clicked it by mistake)
  {const u=document.createElement('button');u.className='btn';u.id='fundo';u.type='button';u.title='Undo the last shape click (Ctrl+Z)';u.textContent='Undo';$b('dlines').after(u)}
  const count=()=>{const n={};F.forEach(f=>n[f.k]=(n[f.k]||0)+1);return Object.entries(n).map(([k,v])=>`${v} ${K[k].t.toLowerCase()}${v>1&&k!='water'?'s':''}`).join(', ')};
