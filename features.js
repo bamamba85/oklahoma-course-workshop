@@ -25,7 +25,7 @@ function okwFeatures(D){
  const F=mine.f=mine.f||[];
  map.createPane('feat').style.zIndex=380;
  const lay=L.layerGroup().addTo(map);
- let mode=null,pts=[],sel=-1,dsel=-1,joining=false,skipClick=false,nudge=null;
+ let mode=null,pts=[],sel=-1,dsel=-1,joining=false,skipClick=false,nudge=null,ghostDraw=null;
  // stacking order, bottom to top (owner, Nov 24 2026): buildings, creeks/water, rough, range, fairway, paths, tees, bunkers, greens
  const RANK={power:9,building:0,clubhouse:0,creek:1,water:1,rough:2,driving_range:3,fairway:4,path:5,cartpath:5,tee:6,bunker:7,green:8};
  // Alt+click picks the shape underneath (owner, Nov 25 2026: Oak Tree East has grass islands inside a bunker that the
@@ -105,7 +105,40 @@ function okwFeatures(D){
    if(window.showOpenFilePicker&&!plain){let fh;
     try{[fh]=await showOpenFilePicker({id:'okw-tgc-export',types:[{description:'LIDAR picture',accept:{'image/png':['.png']}}]})}catch(e){if(e.name=='AbortError')return;fh=null}
     if(fh){try{usePic(await fh.getFile())}catch{plain=true;st.textContent="This browser wouldn't open the file that way. Click LIDAR picture again and pick it in the ordinary file window."}return}}
-   ppick.value='';ppick.click()}}
+   ppick.value='';ppick.click()}
+  // Bunker check (owner, Nov 25 2026): "<course> bunker check.json" from Build Kit/bunker_check.py lists bunkers that
+  // sit off their dip in the LIDAR ground. Each gets a dashed ghost outline where it should go, a numbered label and a
+  // line from the bunker to it; drag (or arrow-key) the bunker onto its ghost and the ghost goes away (within 0.5 m).
+  map.createPane('ghosts').style.zIndex=390;map.getPane('ghosts').style.pointerEvents='none';
+  const gl=L.layerGroup().addTo(map);let ghosts=null,gfile='';
+  const cb=document.createElement('button');cb.className='btn';cb.id='dbcheck';cb.type='button';cb.setAttribute('aria-pressed','false');
+  cb.title='Show where bunkers should sit to lie in their dips in the LIDAR ground (file made by bunker_check.py)';cb.textContent='Bunker check';pb.after(cb);
+  const mid=g=>{const s=g.reduce((a,p)=>[a[0]+p[0],a[1]+p[1]],[0,0]);return [s[0]/g.length,s[1]/g.length]};
+  const mdist=(a,b)=>Math.hypot((a[0]-b[0])*110540,(a[1]-b[1])*111320*Math.cos(a[0]*Math.PI/180));
+  ghostDraw=()=>{gl.clearLayers();if(!ghosts||cb.getAttribute('aria-pressed')!='true')return;let left=0;
+   for(const gh of ghosts){if(!F.includes(gh.f))gh.f=null;const at=gh.f?mid(sm('bunker',gh.f.g)):gh.center;
+    if(gh.f&&mdist(at,gh.to)<0.5){gh.done=true;continue}gh.done=false;left++;
+    L.polygon(gh.outline,{pane:'ghosts',interactive:false,color:'#FF2BD6',weight:2,dashArray:'5 4',fill:true,fillColor:'#FF2BD6',fillOpacity:.08}).addTo(gl);
+    L.polyline([at,gh.to],{pane:'ghosts',interactive:false,color:'#FF2BD6',weight:1.5,opacity:.9}).addTo(gl);
+    L.tooltip({permanent:true,direction:'center',className:'ghosttip',interactive:false}).setLatLng(gh.to).setContent(gh.label).addTo(gl)}
+   gh_left=left};
+  let gh_left=0;
+  const useCheck=async file=>{let d;try{d=JSON.parse(await file.text())}catch{st.textContent=`${file.name} isn't a bunker check file.`;return}
+   if(!Array.isArray(d.bunkers)){st.textContent=`${file.name} isn't a bunker check file.`;return}
+   const bs=F.filter(f=>f.k=='bunker');
+   ghosts=d.bunkers.map(b=>{let best=null,bd=4;for(const f of bs){const dd=mdist(mid(sm('bunker',f.g)),b.center);if(dd<bd){bd=dd;best=f}}
+    const to=mid(b.outline);return {label:b.label,outline:b.outline,center:b.center,to,f:best}});
+   gfile=file.name;cb.setAttribute('aria-pressed','true');cb.textContent='Bunker check on';render();
+   const miss=ghosts.filter(g=>!g.f).length,sh=(d.course_shift_e||d.course_shift_n)?` Set the whole-course shift in the tool's CFS Alignment Viewer: E/W ${(+d.course_shift_e).toFixed(1)}, N/S ${(+d.course_shift_n).toFixed(1)} (the ghosts allow for it).`:'';
+   st.textContent=`Bunker check: ${ghosts.length} bunker${ghosts.length==1?'':'s'} to move onto their dashed outlines (pink). Drag each bunker onto its outline; it disappears when the bunker is on it.`+sh+(miss?` ${miss} couldn't be matched to a bunker here (moved already, or a different file?).`:'');
+   const b=L.latLngBounds(ghosts.flatMap(g=>g.outline));if(b.isValid()&&!map.getBounds().intersects(b))map.fitBounds(b,{padding:[40,40]})};
+  const cpick=document.createElement('input');cpick.type='file';cpick.accept='.json';cpick.hidden=true;$b('dfeat').append(cpick);
+  cpick.onchange=()=>{if(cpick.files[0])useCheck(cpick.files[0])};
+  cb.onclick=async()=>{if(ghosts){const on=cb.getAttribute('aria-pressed')!='true';cb.setAttribute('aria-pressed',on);cb.textContent=on?'Bunker check on':'Bunker check off';render();if(on)st.textContent=`Bunker check: ${gh_left} left to move.`;return}
+   if(window.showOpenFilePicker&&!plain){let fh;
+    try{[fh]=await showOpenFilePicker({id:'okw-tgc-export',types:[{description:'Bunker check',accept:{'application/json':['.json']}}]})}catch(e){if(e.name=='AbortError')return;fh=null}
+    if(fh){try{useCheck(await fh.getFile())}catch{plain=true;st.textContent="This browser wouldn't open the file that way. Click Bunker check again and pick it in the ordinary file window."}return}}
+   cpick.value='';cpick.click()}}
  // Undo sits in the hole row, after Shapes on, away from Finish shape (owner, Nov 24 2026: clicked it by mistake)
  {const u=document.createElement('button');u.className='btn';u.id='fundo';u.type='button';u.title='Undo the last shape click (Ctrl+Z)';u.textContent='Undo';$b('dlines').after(u)}
  const count=()=>{const n={};F.forEach(f=>n[f.k]=(n[f.k]||0)+1);return Object.entries(n).map(([k,v])=>`${v} ${K[k].t.toLowerCase()}${v>1&&k!='water'?'s':''}`).join(', ')};
@@ -154,7 +187,7 @@ function okwFeatures(D){
    if(pts.length>=2)(ring?L.polygon(sm(mode,pts),s):L.polyline(sm(mode,pts),s)).addTo(lay);
    pts.forEach((q,j)=>{const m=L.marker(q,{icon:icon(j==0&&!K[mode].line&&pts.length>=3?'fdot first':'fdot',j==0?16:12),zIndexOffset:2000}).addTo(lay);
     m.on('click',e=>{L.DomEvent.stopPropagation(e);if(j==0&&!K[mode].line&&pts.length>=3)finish();else if(j==pts.length-1&&K[mode].line&&pts.length>=2)finish()})})}
-  buttons();hint()}
+  ghostDraw?.();buttons();hint()}
  // smooth as he draws and on Finish (owner, Nov 24 2026): a rounded curve that passes through every clicked point
  // (Catmull-Rom, 2 extra points between clicks), so the edge still lands where he clicked
  // Centripetal Catmull-Rom (Nov 24 2026): unlike the plain kind it doesn't overshoot or loop where dots are unevenly
