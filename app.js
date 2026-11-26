@@ -270,14 +270,15 @@ function scorecard(c){if(!c.holes.length)return `<p>No hole-by-hole card has bee
 // Panels follow the game's own menus and labels, scorecard-style: Fairway, Green, Rough on the left; Bunker, Environment on the right.
 // Every value can be edited; edits stay in this browser (localStorage 'okw-game', never 'okw') and download as a CSV row
 // laid out like the owner's "Details 25" sheet (column A name, settings in C to V, theme in W), ready to paste in.
-const GL=['Fairway Texture','Fairway Mow Width','Fairway Mow Intensity','Light Rough Texture','Heavy Rough Texture','Green Texture','Green Mow Width','Green Mow Intensity','Bunker Texture','Terrain Water','Terrain Hills','Terrain Trees','Terrain Plants','Terrain Grass','Terrain Rocks'];
+// Green Flag (column N) and Tee Marker (column X) added Nov 25 2026 (owner): numbers from "2K25 Flag and Tee Marker Numbers.pdf".
+const GL=['Fairway Texture','Fairway Mow Width','Fairway Mow Intensity','Light Rough Texture','Heavy Rough Texture','Green Texture','Green Mow Width','Green Mow Intensity','Green Flag','Bunker Texture','Terrain Water','Terrain Hills','Terrain Trees','Terrain Plants','Terrain Grass','Terrain Rocks','Tee Marker'];
 // THEMES: the 2K25 designer's Theme menu, in its order (owner's photo, Nov 2026).
-const GCOL=[2,3,4,6,8,10,11,12,14,16,17,18,19,20,21],THEMES=['Desert','Boreal','Tropical','Countryside','Harvest','Winter','Delta','Rustic','Swiss','Steppe','Autumn','Highlands','Temperate','Fjordlands'];
-const GS=[['Fairway','fw',/^Fairway /],['Green','gr',/^Green /],['Rough','ro',/ Rough /],['Theme','th',/^Theme$/],['Bunker','bu',/^Bunker /],['Terrain','te',/^Terrain /]];
+const GCOL=[2,3,4,6,8,10,11,12,13,14,16,17,18,19,20,21,23],THEMES=['Desert','Boreal','Tropical','Countryside','Harvest','Winter','Delta','Rustic','Swiss','Steppe','Autumn','Highlands','Temperate','Fjordlands'];
+const GS=[['Fairway','fw',/^Fairway /],['Green','gr',/^Green /],['Rough','ro',/ Rough /],['Theme','th',/^Theme$/],['Bunker','bu',/^Bunker /],['Tee','tm',/^Tee /],['Terrain','te',/^Terrain /]];
 const gstore={get(){try{return JSON.parse(localStorage.getItem('okw-game')||'{}')}catch{return {}}},set(v){try{localStorage.setItem('okw-game',JSON.stringify(v))}catch{}}};
 const gbase=c=>{const g=c.gm||{};return Object.assign(Object.fromEntries(g.set||[]),{Theme:g.theme??''})};
 // One CSV laid out like Details 25: list holds [course name, value getter] pairs.
-function gcsv(list){const q=x=>/[",\r\n]/.test(x)?`"${x.replace(/"/g,'""')}"`:x,row=(n,v)=>{const r=Array(23).fill('');r[0]=n;GL.forEach((k,i)=>r[GCOL[i]]=v(k));r[22]=v('Theme');return r};
+function gcsv(list){const q=x=>/[",\r\n]/.test(x)?`"${x.replace(/"/g,'""')}"`:x,row=(n,v)=>{const r=Array(24).fill('');r[0]=n;GL.forEach((k,i)=>r[GCOL[i]]=v(k));r[22]=v('Theme');return r};
  return [row('Course Name',k=>k.replace('Terrain Water','Terrain Water Level')),...list.map(([n,v])=>row(n,v))].map(r=>r.map(x=>q(String(x??''))).join(',')).join('\r\n')+'\r\n'}
 // OpenStreetMap check. c.ob is the course's map area [south,west,north,east]; c.osm is what the last
 // update_hole_map.py pull used: {at: OpenStreetMap data time, h: [[way id, version, hole number], ...]}.
@@ -314,7 +315,7 @@ async function osmCheck(c){const st=$('osmst'),b=$('osmck'),day=t=>new Date(t).t
 function fileout(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function game(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{},val=k=>String(k in mine?mine[k]:base[k]??'');
  const pub={you:'Published by Oklahoma Course Workshop',others:'Published by another designer'}[g.pub]||'Not published yet';
- const lab=l=>l.replace(/^(Fairway|Green) Mow/,'Mow').replace('Terrain Water','Water Level').replace('Terrain ','');
+ const lab=l=>l.replace(/^(Fairway|Green) Mow/,'Mow').replace('Terrain Water','Water Level').replace(/^(Terrain|Green|Tee) (?!Texture)/,'');
  const field=k=>{const id='g-'+k.replace(/ /g,'-').toLowerCase();return `<div><label for="${id}">${esc(lab(k))}</label>${k=='Theme'?`<select id="${id}" data-k="Theme"><option value="">Not set</option>${(!val(k)||THEMES.includes(val(k))?THEMES:[val(k),...THEMES]).map(t=>`<option${t==val(k)?' selected':''}>${esc(t)}</option>`).join('')}</select>`:`<input id="${id}" data-k="${esc(k)}" type="number" inputmode="numeric" min="0" max="100" step="1" value="${esc(val(k))}">`}</div>`};
  const panel=([t,k,re])=>`<section class="gp ${k}"><h3>${t}</h3>${['Theme',...GL].filter(l=>re.test(l)).map(field).join('')}</section>`;
  const col=ks=>GS.filter(s=>ks.includes(s[1])).map(panel).join('');
@@ -326,13 +327,13 @@ function game(c){const g=c.gm||{},base=gbase(c),mine=gstore.get()[c.s]||{},val=k
  <figcaption>Built in PGA Tour 2K25 by Bamamba85 · <b>${esc(bp.n)}</b> · ${bpd}. Tap the picture to open it full size.</figcaption></figure>`:'';
  return `<div class="gh"><h2>PGA Tour 2K25</h2><span>${pub}</span></div>${fig}
  <div class="gt"><button type="button" class="btn" id="gdl">Download Game Setting (CSV)</button><button type="button" class="btn" id="grs" hidden>Undo my edits</button><span id="gst" role="status"></span></div>
- <div class="gc"><div>${col(['fw','gr','ro'])}</div><div>${col(['th','bu','te'])}</div></div>
+ <div class="gc"><div>${col(['fw','gr','ro'])}</div><div>${col(['th','bu','tm','te'])}</div></div>
  <p class="gn">${g.set&&g.set.length?'Settings from the 2K25 course designer. Textures are the slot numbers in each picker.':'No 2K25 settings recorded yet. Type yours in.'} Changes save in this browser only. The CSV row lines up with your Details 25 sheet, so it pastes straight in.</p>`}
 // The printed build sheet's 2K25 block (owner, Nov 8 2026): every game setting as plain text, values as the Game tab
 // shows them in this browser (✱ = changed here, not yet in the workbook); blank lines to write on when there's none.
 const GPRINT=[['Theme',[['','Theme']]],['Fairway',[['Texture','Fairway Texture'],['Mow width','Fairway Mow Width'],['Mow intensity','Fairway Mow Intensity']]],
- ['Green',[['Texture','Green Texture'],['Mow width','Green Mow Width'],['Mow intensity','Green Mow Intensity']]],['Rough',[['Light texture','Light Rough Texture'],['Heavy texture','Heavy Rough Texture']]],
- ['Bunker',[['Texture','Bunker Texture']]],['Terrain',[['Water level','Terrain Water'],['Hills','Terrain Hills'],['Trees','Terrain Trees'],['Plants','Terrain Plants'],['Grass','Terrain Grass'],['Rocks','Terrain Rocks']]]];
+ ['Green',[['Texture','Green Texture'],['Mow width','Green Mow Width'],['Mow intensity','Green Mow Intensity'],['Flag','Green Flag']]],['Rough',[['Light texture','Light Rough Texture'],['Heavy texture','Heavy Rough Texture']]],
+ ['Bunker',[['Texture','Bunker Texture']]],['Tee',[['Marker','Tee Marker']]],['Terrain',[['Water level','Terrain Water'],['Hills','Terrain Hills'],['Trees','Terrain Trees'],['Plants','Terrain Plants'],['Grass','Terrain Grass'],['Rocks','Terrain Rocks']]]];
 // TGC Designer Tools hole name filter (owner, Nov 11 2026): only for courses with other courses' holes nearby
 // (osm_check.py -> data/tgc_filter.json -> c.tgc). The tool keeps holes whose OpenStreetMap `name` contains the
 // filter text and needs plain hole numbers; this says what to type, or what to fix in OpenStreetMap first.
